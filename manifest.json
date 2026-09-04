@@ -1,0 +1,10 @@
+{
+  "id": "obsidian-drawthings",
+  "name": "Draw Things Scene Illustrator",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "Script novel scenes and generate key plot beat illustrations using Draw Things CLI.",
+  "author": "Daniel & Antigravity",
+  "authorUrl": "",
+  "isDesktopOnly": true
+}
