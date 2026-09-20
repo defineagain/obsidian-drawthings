@@ -12,7 +12,37 @@ export interface StylePreset {
   configJson?: string;
 }
 
+export interface ShootLora {
+  file: string;
+  weight: number;
+  version?: string;
+  mode?: string;
+}
+
+export interface ShootConfig {
+  id: string;
+  name: string;
+  category?: string;
+  description?: string;
+  model: string;
+  loras?: ShootLora[];
+  lora?: string;
+  lora_weight?: number;
+  steps: number;
+  width: number;
+  height: number;
+  cfg: number;
+  refine_mode?: PromptRefineMode;
+  auto_refine?: boolean | string;
+  prompt_anchor?: string;
+  raw_configuration?: Record<string, any>;
+  is_builtin?: boolean;
+  is_drawthings_app?: boolean;
+}
+
 export type LLMProvider = "smart-composer" | "ollama" | "lm-studio" | "anthropic" | "openai" | "gemini" | "custom";
+
+export type PromptRefineMode = "unified" | "visionary" | "eni_bible" | "disabled";
 
 export interface DrawThingsSettings {
   cliPath: string;
@@ -26,6 +56,12 @@ export interface DrawThingsSettings {
   enableCharacterResolution: boolean;
   characterFolders: string[];
   presets: Record<string, StylePreset>;
+
+  // Shoot & Config Lookup (Alfred Workflow parity)
+  activeShoot: string;
+  promptRefineMode: PromptRefineMode;
+  autoRefine: boolean;
+  customConfigsPath?: string;
 
   // LLM / AI Automation Settings
   llmProvider: LLMProvider;
@@ -43,6 +79,8 @@ export interface PlotBeatData {
   scene?: string;
   character?: string;
   preset?: string;
+  shoot?: string;
+  refine?: string | boolean;
   model?: string;
   prompt: string;
   negative_prompt?: string;
@@ -54,6 +92,8 @@ export interface PlotBeatData {
   seed?: number;
   image?: string;
   strength?: number;
+  loras?: ShootLora[];
+  prompt_anchor?: string;
   config_json?: string;
   output?: string;
 }
@@ -61,6 +101,8 @@ export interface PlotBeatData {
 export interface SceneScriptData {
   scene: string;
   preset?: string;
+  shoot?: string;
+  refine?: string | boolean;
   model?: string;
   aspect?: string;
   width?: number;
@@ -82,6 +124,8 @@ export interface GenerationJob {
   title: string;
   prompt: string;
   effectivePrompt: string;
+  refinedPrompt?: string;
+  shootName?: string;
   model: string;
   seed: number;
   width: number;
@@ -91,6 +135,7 @@ export interface GenerationJob {
   outputPath: string;
   metaPath: string;
   cliArgs: string[];
+  configJson?: string;
   status: JobStatus;
   progress: number;
   statusMessage: string;
@@ -99,3 +144,4 @@ export interface GenerationJob {
   startedAt?: number;
   completedAt?: number;
 }
+

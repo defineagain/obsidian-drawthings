@@ -17,6 +17,11 @@ export const DEFAULT_SETTINGS: DrawThingsSettings = {
   characterFolders: ["Characters", "Visuals/Character Visuals", "Visuals/Portrait Prompts"],
   presets: DEFAULT_PRESETS,
 
+  // Shoot & Config Lookup (Alfred workflow parity)
+  activeShoot: "dt_krea_ultra_real",
+  promptRefineMode: "unified",
+  autoRefine: false,
+
   // LLM settings
   llmProvider: "smart-composer",
   llmEndpoint: "http://127.0.0.1:11434/api/chat",
@@ -164,8 +169,101 @@ export class DrawThingsSettingTab extends PluginSettingTab {
           })
       );
 
+    // Prompt Refinement (Alfred workflow parity)
+    containerEl.createEl("h3", { text: "🧠 Prompt Refinement (Visionary Artist + ENI Shoot Bible)" });
+    containerEl.createEl("p", {
+      text: "Transform beats into 5-part architectural photographic descriptions, identical to the Alfred workflow.",
+      cls: "setting-item-description"
+    });
+
+    new Setting(containerEl)
+      .setName("Default Prompt Refinement Mode")
+      .setDesc("Unified Master combines Visionary logic with ENI Shoot Bible 5-part architecture.")
+      .addDropdown(dropdown => {
+        dropdown
+          .addOption("unified", "Unified Master (Visionary + ENI Bible)")
+          .addOption("visionary", "Visionary Artist (~500 Words)")
+          .addOption("eni_bible", "Pure ENI Shoot Bible (5 Sections)")
+          .addOption("disabled", "Disabled (Raw Beat Prompts)")
+          .setValue(this.plugin.settings.promptRefineMode)
+          .onChange(async (val: any) => {
+            this.plugin.settings.promptRefineMode = val;
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Auto-Refine Prompts on Generation")
+      .setDesc("Automatically run prompts through the chosen AI refinement architecture before executing Draw Things CLI.")
+      .addToggle(toggle =>
+        toggle
+          .setValue(this.plugin.settings.autoRefine)
+          .onChange(async val => {
+            this.plugin.settings.autoRefine = val;
+            await this.plugin.saveSettings();
+          })
+      );
+
     // ==========================================
-    // 2. DRAW THINGS CLI SETTINGS
+    // 2. SHOOT TYPES & APP CONFIGS (ALFRED WORKFLOW)
+    // ==========================================
+    containerEl.createEl("h3", { text: "🎬 Shoot Types & App Configurations (Alfred Workflow Lookup)" });
+    containerEl.createEl("p", {
+      text: "Saved configuration sets discovered from Draw Things app container (custom_configs.json) and Alfred shoots.",
+      cls: "setting-item-description"
+    });
+
+    const shoots = this.plugin.configLookup ? this.plugin.configLookup.getAllShoots() : [];
+    const activeShoot = this.plugin.configLookup ? this.plugin.configLookup.getShoot(this.plugin.settings.activeShoot) : null;
+
+    new Setting(containerEl)
+      .setName("Active Default Shoot Type")
+      .setDesc("Global preset configuration used when beats or scene scripts don't specify an explicit shoot.")
+      .addDropdown(dropdown => {
+        for (const s of shoots) {
+          const badge = s.is_drawthings_app ? "📱 " : (s.is_builtin ? "🎬 " : "⚙️ ");
+          dropdown.addOption(s.id, `${badge}${s.name}`);
+        }
+        dropdown.setValue(this.plugin.settings.activeShoot);
+        dropdown.onChange(async val => {
+          this.plugin.settings.activeShoot = val;
+          await this.plugin.saveSettings();
+          this.display();
+        });
+      })
+      .addButton(btn =>
+        btn.setButtonText("🔄 Reload Draw Things Presets").onClick(() => {
+          if (this.plugin.configLookup) {
+            this.plugin.configLookup.reloadConfigs();
+            new Notice(`Scanned Draw Things container: found ${this.plugin.configLookup.getAllShoots().length} configurations.`);
+            this.display();
+          }
+        })
+      );
+
+    if (activeShoot) {
+      const infoBox = containerEl.createDiv({ cls: "drawthings-shoot-info-card" });
+      infoBox.createEl("h4", { text: `Active Shoot Specs: ${activeShoot.name}` });
+      if (activeShoot.description) {
+        infoBox.createEl("p", { text: activeShoot.description, cls: "drawthings-shoot-desc" });
+      }
+      const loraCount = activeShoot.loras ? activeShoot.loras.length : (activeShoot.lora && activeShoot.lora !== "none" ? 1 : 0);
+      const loraText = loraCount > 1
+        ? `${loraCount} LoRAs (${activeShoot.loras!.map(l => `${l.file} @ ${l.weight}`).join(", ")})`
+        : (activeShoot.lora && activeShoot.lora !== "none" ? `${activeShoot.lora} (${activeShoot.lora_weight ?? 1.0})` : "None");
+
+      const specsList = infoBox.createEl("ul", { cls: "drawthings-shoot-specs-list" });
+      specsList.createEl("li", { text: `Base Model: ${activeShoot.model}` });
+      specsList.createEl("li", { text: `Dimensions: ${activeShoot.width} x ${activeShoot.height}` });
+      specsList.createEl("li", { text: `Inference Steps: ${activeShoot.steps} | CFG: ${activeShoot.cfg}` });
+      specsList.createEl("li", { text: `Active LoRAs: ${loraText}` });
+      if (activeShoot.prompt_anchor) {
+        specsList.createEl("li", { text: `Prompt Style Anchor: "${activeShoot.prompt_anchor}"` });
+      }
+    }
+
+    // ==========================================
+    // 3. DRAW THINGS CLI SETTINGS
     // ==========================================
     containerEl.createEl("h3", { text: "🎨 Draw Things Local Engine" });
 

@@ -2,26 +2,43 @@ import { App, MarkdownPostProcessorContext, Notice, TFile } from "obsidian";
 import * as yaml from "yaml";
 import * as path from "path";
 import * as fs from "fs";
-import { DrawThingsSettings, GenerationJob, PlotBeatData, SceneScriptData } from "./types";
+import { DrawThingsSettings, GenerationJob, PlotBeatData, SceneScriptData, ShootConfig } from "./types";
 import { QueueManager } from "./queue";
 import { CharacterResolver } from "./characterResolver";
 import { DEFAULT_PRESETS, parseAspectRatio, roundToMultipleOf64 } from "./presetResolver";
+import { ConfigLookup } from "./configLookup";
+import { PromptRefiner } from "./promptRefiner";
+import { PromptRefineModal } from "./refineModal";
 
 export class SceneScriptProcessor {
   private app: App;
   private settings: DrawThingsSettings;
   private queue: QueueManager;
   private charResolver: CharacterResolver;
+  private configLookup: ConfigLookup;
+  private promptRefiner: PromptRefiner;
 
-  constructor(app: App, settings: DrawThingsSettings, queue: QueueManager, charResolver: CharacterResolver) {
+  constructor(
+    app: App,
+    settings: DrawThingsSettings,
+    queue: QueueManager,
+    charResolver: CharacterResolver,
+    configLookup: ConfigLookup,
+    promptRefiner: PromptRefiner
+  ) {
     this.app = app;
     this.settings = settings;
     this.queue = queue;
     this.charResolver = charResolver;
+    this.configLookup = configLookup;
+    this.promptRefiner = promptRefiner;
   }
 
   updateSettings(settings: DrawThingsSettings) {
     this.settings = settings;
+    if (this.configLookup) {
+      this.configLookup.setModelsDir(settings.modelsDir);
+    }
   }
 
   async process(source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext): Promise<void> {
@@ -31,7 +48,7 @@ export class SceneScriptProcessor {
     let parsed: any;
     try {
       parsed = yaml.parse(source) || {};
-    } catch (e) {
+    } catch (e: any) {
       container.createDiv({ cls: "drawthings-error", text: `YAML parsing error: ${e.message}` });
       return;
     }
@@ -46,6 +63,8 @@ export class SceneScriptProcessor {
   private normalizeSceneData(raw: any, fileBasename: string): SceneScriptData {
     const scene = raw.scene || fileBasename || "Scene";
     const preset = raw.preset;
+    const shoot = raw.shoot || raw.preset;
+    const refine = raw.refine;
     const model = raw.model || this.settings.defaultModel;
     const aspect = raw.aspect || raw.ratio;
     const seedStart = raw.seed_start !== undefined ? Number(raw.seed_start) : undefined;
@@ -68,6 +87,8 @@ export class SceneScriptProcessor {
         scene,
         character: b.character,
         preset: b.preset || preset,
+        shoot: b.shoot || shoot,
+        refine: b.refine !== undefined ? b.refine : refine,
         model: b.model || model,
         prompt: b.prompt || "",
         negative_prompt: b.negative_prompt || b.negative || raw.negative_prompt || raw.negative,
@@ -79,6 +100,7 @@ export class SceneScriptProcessor {
         seed: seed !== undefined ? Number(seed) : undefined,
         image: b.image,
         strength: b.strength,
+        prompt_anchor: b.prompt_anchor || raw.prompt_anchor,
         config_json: b.config_json || raw.config_json,
         output: b.output
       };
@@ -87,6 +109,8 @@ export class SceneScriptProcessor {
     return {
       scene,
       preset,
+      shoot,
+      refine,
       model,
       aspect,
       width: raw.width,
@@ -103,19 +127,34 @@ export class SceneScriptProcessor {
     const beatSlug = String(beat.beat).padStart(2, "0");
     const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
 
+    // 1. Resolve Shoot / Preset
+    const shootQuery = beat.shoot || beat.preset || this.settings.activeShoot;
+    const shoot = this.configLookup.getShoot(shootQuery);
     const presetKey = beat.preset || "";
     const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
-    const model = beat.model || preset?.model || this.settings.defaultModel;
 
+    let model = beat.model || shoot?.model || preset?.model || this.settings.defaultModel;
+
+    // LoRA compatibility
+    const effectiveLora = shoot?.lora || "none";
+    if (effectiveLora && effectiveLora.toLowerCase() !== "none") {
+      const fixed = this.configLookup.checkAndFixModelLoraCompatibility(model, effectiveLora);
+      model = fixed.model;
+    }
+
+    // Dimensions
     let width = beat.width;
     let height = beat.height;
-    if ((!width || !height) && (beat.aspect || preset?.width)) {
+    if ((!width || !height) && (beat.aspect || shoot?.width || preset?.width)) {
       if (beat.aspect) {
         const dims = parseAspectRatio(beat.aspect);
         if (dims) {
           width = dims.width;
           height = dims.height;
         }
+      } else if (shoot?.width && shoot?.height) {
+        width = shoot.width;
+        height = shoot.height;
       } else if (preset?.width && preset?.height) {
         width = preset.width;
         height = preset.height;
@@ -124,8 +163,8 @@ export class SceneScriptProcessor {
     width = roundToMultipleOf64(width || this.settings.defaultWidth);
     height = roundToMultipleOf64(height || this.settings.defaultHeight);
 
-    const steps = beat.steps || preset?.steps || this.settings.defaultSteps;
-    const cfg = beat.cfg || preset?.cfg || this.settings.defaultCfg;
+    const steps = beat.steps || shoot?.steps || preset?.steps || this.settings.defaultSteps;
+    const cfg = beat.cfg || shoot?.cfg || preset?.cfg || this.settings.defaultCfg;
     const seed = beat.seed !== undefined ? beat.seed : Math.floor(Math.random() * 2000000000);
 
     let charPrompt = "";
@@ -133,15 +172,34 @@ export class SceneScriptProcessor {
       charPrompt = await this.charResolver.resolveCharacterPrompt(beat.character, this.settings.characterFolders);
     }
 
+    // Check Prompt Refinement
+    const shouldRefine = (beat.refine !== false && beat.refine !== "false") &&
+      (Boolean(beat.refine) || this.settings.autoRefine || String(shoot?.auto_refine).toLowerCase() === "true");
+
     let effectivePrompt = beat.prompt;
-    if (charPrompt && !effectivePrompt.includes(charPrompt)) {
-      effectivePrompt = `${charPrompt}, ${effectivePrompt}`;
-    }
-    if (preset?.promptPrefix && !effectivePrompt.startsWith(preset.promptPrefix)) {
-      effectivePrompt = `${preset.promptPrefix} ${effectivePrompt}`;
-    }
-    if (preset?.promptSuffix && !effectivePrompt.endsWith(preset.promptSuffix)) {
-      effectivePrompt = `${effectivePrompt}${preset.promptSuffix}`;
+
+    if (shouldRefine) {
+      const mode = (typeof beat.refine === "string" ? beat.refine : null) || shoot?.refine_mode || this.settings.promptRefineMode || "unified";
+      try {
+        new Notice(`🧠 Refining Beat ${beat.beat} prompt with ${mode.toUpperCase()} AI...`);
+        effectivePrompt = await this.promptRefiner.refine(effectivePrompt, {
+          mode: mode as any,
+          promptAnchor: beat.prompt_anchor || shoot?.prompt_anchor,
+          characterPrompt: charPrompt
+        });
+      } catch (e: any) {
+        console.error("[DrawThings] Auto-refine failed:", e);
+      }
+    } else {
+      if (charPrompt && !effectivePrompt.includes(charPrompt)) {
+        effectivePrompt = `${charPrompt}, ${effectivePrompt}`;
+      }
+      if (preset?.promptPrefix && !effectivePrompt.startsWith(preset.promptPrefix)) {
+        effectivePrompt = `${preset.promptPrefix} ${effectivePrompt}`;
+      }
+      if (preset?.promptSuffix && !effectivePrompt.endsWith(preset.promptSuffix)) {
+        effectivePrompt = `${effectivePrompt}${preset.promptSuffix}`;
+      }
     }
 
     let effectiveNegative = beat.negative_prompt || "";
@@ -184,8 +242,9 @@ export class SceneScriptProcessor {
       }
     }
 
-    if (beat.config_json || preset?.configJson) {
-      cliArgs.push("--config-json", beat.config_json || preset!.configJson!);
+    const configJson = beat.config_json || (shoot ? this.configLookup.buildConfigJson(shoot) : (preset?.configJson || ""));
+    if (configJson) {
+      cliArgs.push("--config-json", configJson);
     }
 
     return {
@@ -197,6 +256,8 @@ export class SceneScriptProcessor {
       title: beat.title || `Beat ${beat.beat}`,
       prompt: beat.prompt,
       effectivePrompt,
+      shootName: shoot?.name,
+      configJson,
       model,
       seed,
       width,
@@ -216,16 +277,21 @@ export class SceneScriptProcessor {
   private renderSceneDeck(container: HTMLElement, sceneData: SceneScriptData, ctx: MarkdownPostProcessorContext): void {
     const deck = container.createDiv({ cls: "drawthings-scene-deck" });
 
+    const shootQuery = sceneData.shoot || sceneData.preset || this.settings.activeShoot;
+    const shoot = this.configLookup.getShoot(shootQuery);
+
     // Scene Top Bar
     const topBar = deck.createDiv({ cls: "drawthings-scene-topbar" });
     const topBarLeft = topBar.createDiv({ cls: "drawthings-scene-topbar-left" });
     topBarLeft.createEl("h3", { cls: "drawthings-scene-title", text: `🎬 ${sceneData.scene}` });
 
     const topBarRight = topBar.createDiv({ cls: "drawthings-scene-topbar-right" });
-    if (sceneData.preset) {
+    if (shoot) {
+      topBarRight.createSpan({ cls: "drawthings-badge shoot-badge", text: `🎬 ${shoot.name}` });
+    } else if (sceneData.preset) {
       topBarRight.createSpan({ cls: "drawthings-badge preset-badge", text: `🎨 ${sceneData.preset}` });
     }
-    topBarRight.createSpan({ cls: "drawthings-badge model-badge", text: `📦 ${sceneData.model || this.settings.defaultModel}` });
+    topBarRight.createSpan({ cls: "drawthings-badge model-badge", text: `📦 ${shoot?.model || sceneData.model || this.settings.defaultModel}` });
     const countBadge = topBarRight.createSpan({ cls: "drawthings-badge count-badge", text: `0 / ${sceneData.beats.length} Generated` });
 
     // Action Controls
@@ -275,6 +341,7 @@ export class SceneScriptProcessor {
 
       const cardFoot = beatCard.createDiv({ cls: "drawthings-grid-card-foot" });
       const btnGen = cardFoot.createEl("button", { cls: "drawthings-btn drawthings-btn-sm", text: "Generate" });
+      const btnRefine = cardFoot.createEl("button", { cls: "drawthings-btn drawthings-btn-sm", text: "🧠 Refine" });
       const statusSpan = cardFoot.createSpan({ cls: "drawthings-grid-status", text: "Pending" });
 
       const updateCardState = () => {
@@ -302,6 +369,29 @@ export class SceneScriptProcessor {
       btnGen.addEventListener("click", async () => {
         const job = await this.buildJobForBeat(beat, ctx.sourcePath);
         this.queue.enqueue(job);
+      });
+
+      btnRefine.addEventListener("click", () => {
+        const currentFile = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
+        if (currentFile instanceof TFile) {
+          new PromptRefineModal(
+            this.app,
+            beat,
+            currentFile,
+            shoot,
+            this.promptRefiner,
+            this.charResolver,
+            this.queue,
+            this.settings,
+            this.configLookup,
+            (newPrompt) => {
+              beat.prompt = newPrompt;
+              promptEl.setText(newPrompt);
+            }
+          ).open();
+        } else {
+          new Notice("Cannot locate active note file.");
+        }
       });
 
       this.queue.subscribe((job) => {

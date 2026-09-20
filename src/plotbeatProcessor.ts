@@ -2,26 +2,43 @@ import { App, MarkdownPostProcessorContext, Notice, TFile } from "obsidian";
 import * as yaml from "yaml";
 import * as path from "path";
 import * as fs from "fs";
-import { DrawThingsSettings, GenerationJob, PlotBeatData } from "./types";
+import { DrawThingsSettings, GenerationJob, PlotBeatData, ShootConfig } from "./types";
 import { QueueManager } from "./queue";
 import { CharacterResolver } from "./characterResolver";
 import { DEFAULT_PRESETS, parseAspectRatio, roundToMultipleOf64 } from "./presetResolver";
+import { ConfigLookup } from "./configLookup";
+import { PromptRefiner } from "./promptRefiner";
+import { PromptRefineModal } from "./refineModal";
 
 export class PlotbeatProcessor {
   private app: App;
   private settings: DrawThingsSettings;
   private queue: QueueManager;
   private charResolver: CharacterResolver;
+  private configLookup: ConfigLookup;
+  private promptRefiner: PromptRefiner;
 
-  constructor(app: App, settings: DrawThingsSettings, queue: QueueManager, charResolver: CharacterResolver) {
+  constructor(
+    app: App,
+    settings: DrawThingsSettings,
+    queue: QueueManager,
+    charResolver: CharacterResolver,
+    configLookup: ConfigLookup,
+    promptRefiner: PromptRefiner
+  ) {
     this.app = app;
     this.settings = settings;
     this.queue = queue;
     this.charResolver = charResolver;
+    this.configLookup = configLookup;
+    this.promptRefiner = promptRefiner;
   }
 
   updateSettings(settings: DrawThingsSettings) {
     this.settings = settings;
+    if (this.configLookup) {
+      this.configLookup.setModelsDir(settings.modelsDir);
+    }
   }
 
   async process(source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext): Promise<void> {
@@ -31,7 +48,7 @@ export class PlotbeatProcessor {
     let parsed: any;
     try {
       parsed = yaml.parse(source) || {};
-    } catch (e) {
+    } catch (e: any) {
       container.createDiv({ cls: "drawthings-error", text: `YAML parsing error: ${e.message}` });
       return;
     }
@@ -56,7 +73,9 @@ export class PlotbeatProcessor {
       scene,
       character: raw.character,
       preset: raw.preset,
-      model: raw.model || this.settings.defaultModel,
+      shoot: raw.shoot || raw.preset,
+      refine: raw.refine,
+      model: raw.model,
       prompt: raw.prompt || "",
       negative_prompt: raw.negative_prompt || raw.negative || "",
       width: raw.width,
@@ -67,6 +86,7 @@ export class PlotbeatProcessor {
       seed: raw.seed !== undefined ? Number(raw.seed) : undefined,
       image: raw.image,
       strength: raw.strength,
+      prompt_anchor: raw.prompt_anchor,
       config_json: raw.config_json,
       output: raw.output
     };
@@ -77,23 +97,35 @@ export class PlotbeatProcessor {
     const beatSlug = String(beat.beat).padStart(2, "0");
     const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
 
-    // Resolve Preset
+    // 1. Resolve Shoot / Preset via ConfigLookup or Preset
+    const shootQuery = beat.shoot || beat.preset || this.settings.activeShoot;
+    const shoot = this.configLookup.getShoot(shootQuery);
     const presetKey = beat.preset || "";
     const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
 
     // Model
-    const model = beat.model || preset?.model || this.settings.defaultModel;
+    let model = beat.model || shoot?.model || preset?.model || this.settings.defaultModel;
+
+    // Check LoRA compatibility if shoot defines LoRA
+    const effectiveLora = shoot?.lora || "none";
+    if (effectiveLora && effectiveLora.toLowerCase() !== "none") {
+      const fixed = this.configLookup.checkAndFixModelLoraCompatibility(model, effectiveLora);
+      model = fixed.model;
+    }
 
     // Dimensions
     let width = beat.width;
     let height = beat.height;
-    if ((!width || !height) && (beat.aspect || preset?.width)) {
+    if ((!width || !height) && (beat.aspect || shoot?.width || preset?.width)) {
       if (beat.aspect) {
         const dims = parseAspectRatio(beat.aspect);
         if (dims) {
           width = dims.width;
           height = dims.height;
         }
+      } else if (shoot?.width && shoot?.height) {
+        width = shoot.width;
+        height = shoot.height;
       } else if (preset?.width && preset?.height) {
         width = preset.width;
         height = preset.height;
@@ -103,8 +135,8 @@ export class PlotbeatProcessor {
     height = roundToMultipleOf64(height || this.settings.defaultHeight);
 
     // Steps & CFG
-    const steps = beat.steps || preset?.steps || this.settings.defaultSteps;
-    const cfg = beat.cfg || preset?.cfg || this.settings.defaultCfg;
+    const steps = beat.steps || shoot?.steps || preset?.steps || this.settings.defaultSteps;
+    const cfg = beat.cfg || shoot?.cfg || preset?.cfg || this.settings.defaultCfg;
 
     // Seed
     const seed = beat.seed !== undefined ? beat.seed : Math.floor(Math.random() * 2000000000);
@@ -115,16 +147,34 @@ export class PlotbeatProcessor {
       charPrompt = await this.charResolver.resolveCharacterPrompt(beat.character, this.settings.characterFolders);
     }
 
-    // Effective Prompt Assembly
+    // Check Prompt Refinement
+    const shouldRefine = (beat.refine !== false && beat.refine !== "false") &&
+      (Boolean(beat.refine) || this.settings.autoRefine || String(shoot?.auto_refine).toLowerCase() === "true");
+
     let effectivePrompt = beat.prompt;
-    if (charPrompt && !effectivePrompt.includes(charPrompt)) {
-      effectivePrompt = `${charPrompt}, ${effectivePrompt}`;
-    }
-    if (preset?.promptPrefix && !effectivePrompt.startsWith(preset.promptPrefix)) {
-      effectivePrompt = `${preset.promptPrefix} ${effectivePrompt}`;
-    }
-    if (preset?.promptSuffix && !effectivePrompt.endsWith(preset.promptSuffix)) {
-      effectivePrompt = `${effectivePrompt}${preset.promptSuffix}`;
+
+    if (shouldRefine) {
+      const mode = (typeof beat.refine === "string" ? beat.refine : null) || shoot?.refine_mode || this.settings.promptRefineMode || "unified";
+      try {
+        new Notice(`🧠 Refining Beat ${beat.beat} prompt with ${mode.toUpperCase()} AI...`);
+        effectivePrompt = await this.promptRefiner.refine(effectivePrompt, {
+          mode: mode as any,
+          promptAnchor: beat.prompt_anchor || shoot?.prompt_anchor,
+          characterPrompt: charPrompt
+        });
+      } catch (e: any) {
+        console.error("[DrawThings] Auto-refine failed:", e);
+      }
+    } else {
+      if (charPrompt && !effectivePrompt.includes(charPrompt)) {
+        effectivePrompt = `${charPrompt}, ${effectivePrompt}`;
+      }
+      if (preset?.promptPrefix && !effectivePrompt.startsWith(preset.promptPrefix)) {
+        effectivePrompt = `${preset.promptPrefix} ${effectivePrompt}`;
+      }
+      if (preset?.promptSuffix && !effectivePrompt.endsWith(preset.promptSuffix)) {
+        effectivePrompt = `${effectivePrompt}${preset.promptSuffix}`;
+      }
     }
 
     // Effective Negative Prompt
@@ -170,8 +220,10 @@ export class PlotbeatProcessor {
       }
     }
 
-    if (beat.config_json || preset?.configJson) {
-      cliArgs.push("--config-json", beat.config_json || preset!.configJson!);
+    // Build --config-json overrides (multi-LoRA stack and app settings)
+    const configJson = beat.config_json || (shoot ? this.configLookup.buildConfigJson(shoot) : (preset?.configJson || ""));
+    if (configJson) {
+      cliArgs.push("--config-json", configJson);
     }
 
     return {
@@ -183,6 +235,8 @@ export class PlotbeatProcessor {
       title: beat.title || `Beat ${beat.beat}`,
       prompt: beat.prompt,
       effectivePrompt,
+      shootName: shoot?.name,
+      configJson,
       model,
       seed,
       width,
@@ -202,6 +256,9 @@ export class PlotbeatProcessor {
   private renderCard(container: HTMLElement, beat: PlotBeatData, ctx: MarkdownPostProcessorContext): void {
     const card = container.createDiv({ cls: "drawthings-beat-card" });
 
+    const shootQuery = beat.shoot || beat.preset || this.settings.activeShoot;
+    const shoot = this.configLookup.getShoot(shootQuery);
+
     // Header
     const header = card.createDiv({ cls: "drawthings-card-header" });
     const headerLeft = header.createDiv({ cls: "drawthings-card-header-left" });
@@ -215,7 +272,9 @@ export class PlotbeatProcessor {
     if (beat.character) {
       headerRight.createSpan({ cls: "drawthings-badge char-badge", text: `👤 ${beat.character}` });
     }
-    if (beat.preset) {
+    if (shoot) {
+      headerRight.createSpan({ cls: "drawthings-badge shoot-badge", text: `🎬 ${shoot.name}` });
+    } else if (beat.preset) {
       headerRight.createSpan({ cls: "drawthings-badge preset-badge", text: `🎨 ${beat.preset}` });
     }
     const statusBadge = headerRight.createSpan({ cls: "drawthings-badge status-badge status-idle", text: "Idle" });
@@ -251,12 +310,37 @@ export class PlotbeatProcessor {
     const actionGroup = footer.createDiv({ cls: "drawthings-action-group" });
 
     const btnGenerate = actionGroup.createEl("button", { cls: "mod-cta drawthings-btn", text: "🎨 Generate Plate" });
+    const btnRefine = actionGroup.createEl("button", { cls: "drawthings-btn", text: "🧠 Refine Prompt" });
     const btnReroll = actionGroup.createEl("button", { cls: "drawthings-btn", text: "🎲 Re-roll Seed" });
     const btnCopyLink = actionGroup.createEl("button", { cls: "drawthings-btn", text: "📋 Copy Embed" });
     const btnCancel = actionGroup.createEl("button", { cls: "mod-warning drawthings-btn is-hidden", text: "🛑 Cancel" });
 
     const metaSpecs = footer.createDiv({ cls: "drawthings-meta-specs" });
-    metaSpecs.createSpan({ text: `${beat.model || this.settings.defaultModel} • Seed: ${beat.seed ?? "Auto"}` });
+    metaSpecs.createSpan({ text: `${shoot?.model || beat.model || this.settings.defaultModel} • Seed: ${beat.seed ?? "Auto"}` });
+
+    btnRefine.addEventListener("click", () => {
+      const currentFile = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
+      if (currentFile instanceof TFile) {
+        new PromptRefineModal(
+          this.app,
+          beat,
+          currentFile,
+          shoot,
+          this.promptRefiner,
+          this.charResolver,
+          this.queue,
+          this.settings,
+          this.configLookup,
+          (newPrompt) => {
+            beat.prompt = newPrompt;
+            promptSec.empty();
+            promptSec.createEl("p", { cls: "drawthings-prompt-text", text: newPrompt });
+          }
+        ).open();
+      } else {
+        new Notice("Cannot locate active note file.");
+      }
+    });
 
     const updateImageDisplay = () => {
       imgContainer.empty();

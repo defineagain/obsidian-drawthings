@@ -3,12 +3,15 @@ import * as yaml from "yaml";
 import * as path from "path";
 import * as fs from "fs";
 import { QueueManager } from "./queue";
-import { DrawThingsSettings, PlotBeatData } from "./types";
+import { DrawThingsSettings, GenerationJob, PlotBeatData, ShootConfig } from "./types";
 import { CharacterResolver } from "./characterResolver";
 import { DEFAULT_PRESETS, parseAspectRatio, roundToMultipleOf64 } from "./presetResolver";
 import { LLMClient } from "./llmClient";
 import { buildBeatExtractionPrompt, parseBeatsResponse } from "./beatPrompts";
 import { BeatReviewModal } from "./beatReviewModal";
+import { ConfigLookup } from "./configLookup";
+import { PromptRefiner } from "./promptRefiner";
+import { PromptRefineModal } from "./refineModal";
 
 export const STORYBOARD_VIEW_TYPE = "drawthings-storyboard-view";
 
@@ -17,6 +20,8 @@ export class StoryboardView extends ItemView {
   private settings: DrawThingsSettings;
   private charResolver: CharacterResolver;
   private llmClient: LLMClient;
+  private configLookup: ConfigLookup;
+  private promptRefiner: PromptRefiner;
   private currentFile: TFile | null = null;
   private unsubscribeQueue: (() => void) | null = null;
 
@@ -25,13 +30,17 @@ export class StoryboardView extends ItemView {
     queue: QueueManager,
     settings: DrawThingsSettings,
     charResolver: CharacterResolver,
-    llmClient: LLMClient
+    llmClient: LLMClient,
+    configLookup: ConfigLookup,
+    promptRefiner: PromptRefiner
   ) {
     super(leaf);
     this.queue = queue;
     this.settings = settings;
     this.charResolver = charResolver;
     this.llmClient = llmClient;
+    this.configLookup = configLookup;
+    this.promptRefiner = promptRefiner;
   }
 
   getViewType(): string {
@@ -97,6 +106,10 @@ export class StoryboardView extends ItemView {
 
     const header = root.createDiv({ cls: "drawthings-sidebar-header" });
     header.createEl("h4", { cls: "drawthings-sidebar-title", text: `🎬 ${file.basename}` });
+    const activeShoot = this.configLookup.getShoot(this.settings.activeShoot);
+    if (activeShoot) {
+      header.createSpan({ cls: "drawthings-badge shoot-badge", text: `Active: ${activeShoot.name}` });
+    }
 
     let content = "";
     try {
@@ -176,6 +189,30 @@ export class StoryboardView extends ItemView {
       const btnItemGen = itemBot.createEl("button", {
         cls: "drawthings-btn drawthings-btn-xs",
         text: exists ? "Regen" : "Generate"
+      });
+
+      const btnItemRefine = itemBot.createEl("button", {
+        cls: "drawthings-btn drawthings-btn-xs",
+        text: "🧠 Refine"
+      });
+
+      btnItemRefine.addEventListener("click", () => {
+        const shoot = this.configLookup.getShoot(beat.shoot || beat.preset || this.settings.activeShoot);
+        new PromptRefineModal(
+          this.app,
+          beat,
+          file,
+          shoot,
+          this.promptRefiner,
+          this.charResolver,
+          this.queue,
+          this.settings,
+          this.configLookup,
+          (newPrompt) => {
+            beat.prompt = newPrompt;
+            promptSnippet.setText(newPrompt);
+          }
+        ).open();
       });
 
       btnItemGen.addEventListener("click", async () => {
@@ -304,7 +341,9 @@ export class StoryboardView extends ItemView {
           scene,
           character: raw.character,
           preset: raw.preset,
-          model: raw.model || this.settings.defaultModel,
+          shoot: raw.shoot || raw.preset,
+          refine: raw.refine,
+          model: raw.model,
           prompt: raw.prompt || "",
           negative_prompt: raw.negative_prompt || raw.negative,
           width: raw.width,
@@ -315,6 +354,7 @@ export class StoryboardView extends ItemView {
           seed: raw.seed !== undefined ? Number(raw.seed) : undefined,
           image: raw.image,
           strength: raw.strength,
+          prompt_anchor: raw.prompt_anchor,
           config_json: raw.config_json,
           output: raw.output
         });
@@ -327,6 +367,8 @@ export class StoryboardView extends ItemView {
         const raw = yaml.parse(match[1]) || {};
         const scene = raw.scene || defaultScene;
         const preset = raw.preset;
+        const shoot = raw.shoot || raw.preset;
+        const refine = raw.refine;
         const model = raw.model || this.settings.defaultModel;
         const seedStart = raw.seed_start !== undefined ? Number(raw.seed_start) : undefined;
         const rawBeats = Array.isArray(raw.beats) ? raw.beats : [];
@@ -345,6 +387,8 @@ export class StoryboardView extends ItemView {
             scene,
             character: b.character,
             preset: b.preset || preset,
+            shoot: b.shoot || shoot,
+            refine: b.refine !== undefined ? b.refine : refine,
             model: b.model || model,
             prompt: b.prompt || "",
             negative_prompt: b.negative_prompt || b.negative || raw.negative_prompt || raw.negative,
@@ -356,6 +400,7 @@ export class StoryboardView extends ItemView {
             seed: seed !== undefined ? Number(seed) : undefined,
             image: b.image,
             strength: b.strength,
+            prompt_anchor: b.prompt_anchor || raw.prompt_anchor,
             config_json: b.config_json || raw.config_json,
             output: b.output
           });
@@ -366,24 +411,37 @@ export class StoryboardView extends ItemView {
     return beats;
   }
 
-  private async buildJob(beat: PlotBeatData, sourcePath: string) {
+  private async buildJob(beat: PlotBeatData, sourcePath: string): Promise<GenerationJob> {
     const sceneSlug = (beat.scene || "scene").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
     const beatSlug = String(beat.beat).padStart(2, "0");
     const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
 
+    const shootQuery = beat.shoot || beat.preset || this.settings.activeShoot;
+    const shoot = this.configLookup.getShoot(shootQuery);
     const presetKey = beat.preset || "";
     const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
-    const model = beat.model || preset?.model || this.settings.defaultModel;
+
+    let model = beat.model || shoot?.model || preset?.model || this.settings.defaultModel;
+
+    // LoRA compatibility
+    const effectiveLora = shoot?.lora || "none";
+    if (effectiveLora && effectiveLora.toLowerCase() !== "none") {
+      const fixed = this.configLookup.checkAndFixModelLoraCompatibility(model, effectiveLora);
+      model = fixed.model;
+    }
 
     let width = beat.width;
     let height = beat.height;
-    if ((!width || !height) && (beat.aspect || preset?.width)) {
+    if ((!width || !height) && (beat.aspect || shoot?.width || preset?.width)) {
       if (beat.aspect) {
         const dims = parseAspectRatio(beat.aspect);
         if (dims) {
           width = dims.width;
           height = dims.height;
         }
+      } else if (shoot?.width && shoot?.height) {
+        width = shoot.width;
+        height = shoot.height;
       } else if (preset?.width && preset?.height) {
         width = preset.width;
         height = preset.height;
@@ -392,8 +450,8 @@ export class StoryboardView extends ItemView {
     width = roundToMultipleOf64(width || this.settings.defaultWidth);
     height = roundToMultipleOf64(height || this.settings.defaultHeight);
 
-    const steps = beat.steps || preset?.steps || this.settings.defaultSteps;
-    const cfg = beat.cfg || preset?.cfg || this.settings.defaultCfg;
+    const steps = beat.steps || shoot?.steps || preset?.steps || this.settings.defaultSteps;
+    const cfg = beat.cfg || shoot?.cfg || preset?.cfg || this.settings.defaultCfg;
     const seed = beat.seed !== undefined ? beat.seed : Math.floor(Math.random() * 2000000000);
 
     let charPrompt = "";
@@ -401,15 +459,34 @@ export class StoryboardView extends ItemView {
       charPrompt = await this.charResolver.resolveCharacterPrompt(beat.character, this.settings.characterFolders);
     }
 
+    // Check Prompt Refinement
+    const shouldRefine = (beat.refine !== false && beat.refine !== "false") &&
+      (Boolean(beat.refine) || this.settings.autoRefine || String(shoot?.auto_refine).toLowerCase() === "true");
+
     let effectivePrompt = beat.prompt;
-    if (charPrompt && !effectivePrompt.includes(charPrompt)) {
-      effectivePrompt = `${charPrompt}, ${effectivePrompt}`;
-    }
-    if (preset?.promptPrefix && !effectivePrompt.startsWith(preset.promptPrefix)) {
-      effectivePrompt = `${preset.promptPrefix} ${effectivePrompt}`;
-    }
-    if (preset?.promptSuffix && !effectivePrompt.endsWith(preset.promptSuffix)) {
-      effectivePrompt = `${effectivePrompt}${preset.promptSuffix}`;
+
+    if (shouldRefine) {
+      const mode = (typeof beat.refine === "string" ? beat.refine : null) || shoot?.refine_mode || this.settings.promptRefineMode || "unified";
+      try {
+        new Notice(`🧠 Refining Beat ${beat.beat} prompt with ${mode.toUpperCase()} AI...`);
+        effectivePrompt = await this.promptRefiner.refine(effectivePrompt, {
+          mode: mode as any,
+          promptAnchor: beat.prompt_anchor || shoot?.prompt_anchor,
+          characterPrompt: charPrompt
+        });
+      } catch (e: any) {
+        console.error("[DrawThings] Auto-refine failed:", e);
+      }
+    } else {
+      if (charPrompt && !effectivePrompt.includes(charPrompt)) {
+        effectivePrompt = `${charPrompt}, ${effectivePrompt}`;
+      }
+      if (preset?.promptPrefix && !effectivePrompt.startsWith(preset.promptPrefix)) {
+        effectivePrompt = `${preset.promptPrefix} ${effectivePrompt}`;
+      }
+      if (preset?.promptSuffix && !effectivePrompt.endsWith(preset.promptSuffix)) {
+        effectivePrompt = `${effectivePrompt}${preset.promptSuffix}`;
+      }
     }
 
     let effectiveNegative = beat.negative_prompt || "";
@@ -452,8 +529,9 @@ export class StoryboardView extends ItemView {
       }
     }
 
-    if (beat.config_json || preset?.configJson) {
-      cliArgs.push("--config-json", beat.config_json || preset!.configJson!);
+    const configJson = beat.config_json || (shoot ? this.configLookup.buildConfigJson(shoot) : (preset?.configJson || ""));
+    if (configJson) {
+      cliArgs.push("--config-json", configJson);
     }
 
     return {
@@ -465,6 +543,8 @@ export class StoryboardView extends ItemView {
       title: beat.title || `Beat ${beat.beat}`,
       prompt: beat.prompt,
       effectivePrompt,
+      shootName: shoot?.name,
+      configJson,
       model,
       seed,
       width,
@@ -474,7 +554,7 @@ export class StoryboardView extends ItemView {
       outputPath: absOutputPath,
       metaPath: absMetaPath,
       cliArgs,
-      status: "pending" as const,
+      status: "pending",
       progress: 0,
       statusMessage: "Queued",
       logs: []

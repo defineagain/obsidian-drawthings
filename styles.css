@@ -31,6 +31,12 @@
   border: 1px solid rgba(147, 51, 234, 0.3);
 }
 
+.shoot-badge {
+  background-color: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.3);
+}
+
 .model-badge {
   background-color: rgba(59, 130, 246, 0.15);
   color: #60a5fa;
@@ -600,3 +606,96 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* Shoot Specs Info Card in Settings */
+.drawthings-shoot-info-card {
+  margin: 10px 0 16px 0;
+  padding: 12px 16px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-left: 4px solid #f472b6;
+  border-radius: var(--radius-m, 6px);
+}
+
+.drawthings-shoot-info-card h4 {
+  margin: 0 0 6px 0;
+  font-size: 0.95rem;
+  color: var(--text-normal);
+}
+
+.drawthings-shoot-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.drawthings-shoot-specs-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Prompt Refine Modal */
+.drawthings-refine-modal {
+  padding: 8px 4px;
+}
+
+.drawthings-refine-context {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.drawthings-refine-anchor-preview {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.drawthings-refine-box {
+  margin-top: 12px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m, 6px);
+  padding: 10px 14px;
+}
+
+.drawthings-refine-box h5 {
+  margin: 0 0 6px 0;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.drawthings-refine-original-text {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin: 0;
+  color: var(--text-normal);
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.drawthings-refine-textarea {
+  width: 100%;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  font-family: var(--font-text);
+  border-radius: var(--radius-s, 4px);
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+
+.drawthings-refine-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+

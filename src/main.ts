@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, Notice, MarkdownView } from "obsidian";
+import { Plugin, WorkspaceLeaf, Notice, MarkdownView, TFile } from "obsidian";
 import { DrawThingsSettings } from "./types";
 import { DEFAULT_SETTINGS, DrawThingsSettingTab } from "./settings";
 import { QueueManager } from "./queue";
@@ -9,12 +9,17 @@ import { StoryboardView, STORYBOARD_VIEW_TYPE } from "./storyboardView";
 import { LLMClient } from "./llmClient";
 import { buildBeatExtractionPrompt, parseBeatsResponse } from "./beatPrompts";
 import { BeatReviewModal } from "./beatReviewModal";
+import { ConfigLookup } from "./configLookup";
+import { PromptRefiner } from "./promptRefiner";
+import { PromptRefineModal } from "./refineModal";
 
 export default class DrawThingsPlugin extends Plugin {
   settings: DrawThingsSettings = DEFAULT_SETTINGS;
   queue: QueueManager;
   charResolver: CharacterResolver;
   llmClient: LLMClient;
+  configLookup: ConfigLookup;
+  promptRefiner: PromptRefiner;
   plotbeatProcessor: PlotbeatProcessor;
   sceneScriptProcessor: SceneScriptProcessor;
   private statusBarEl: HTMLElement;
@@ -25,12 +30,38 @@ export default class DrawThingsPlugin extends Plugin {
     this.queue = new QueueManager(this.app);
     this.charResolver = new CharacterResolver(this.app);
     this.llmClient = new LLMClient(this.app, this.settings);
-    this.plotbeatProcessor = new PlotbeatProcessor(this.app, this.settings, this.queue, this.charResolver);
-    this.sceneScriptProcessor = new SceneScriptProcessor(this.app, this.settings, this.queue, this.charResolver);
+    this.configLookup = new ConfigLookup(this.settings.modelsDir);
+    this.promptRefiner = new PromptRefiner(this.llmClient);
+
+    this.plotbeatProcessor = new PlotbeatProcessor(
+      this.app,
+      this.settings,
+      this.queue,
+      this.charResolver,
+      this.configLookup,
+      this.promptRefiner
+    );
+
+    this.sceneScriptProcessor = new SceneScriptProcessor(
+      this.app,
+      this.settings,
+      this.queue,
+      this.charResolver,
+      this.configLookup,
+      this.promptRefiner
+    );
 
     // Register Views
     this.registerView(STORYBOARD_VIEW_TYPE, (leaf: WorkspaceLeaf) => {
-      return new StoryboardView(leaf, this.queue, this.settings, this.charResolver, this.llmClient);
+      return new StoryboardView(
+        leaf,
+        this.queue,
+        this.settings,
+        this.charResolver,
+        this.llmClient,
+        this.configLookup,
+        this.promptRefiner
+      );
     });
 
     // Register Markdown Code Block Processors
@@ -169,6 +200,59 @@ export default class DrawThingsPlugin extends Plugin {
       }
     });
 
+    this.addCommand({
+      id: "reload-drawthings-configs",
+      name: "Reload Draw Things Configurations & Shoots",
+      callback: () => {
+        this.configLookup.reloadConfigs();
+        const count = this.configLookup.getAllShoots().length;
+        new Notice(`Scanned Draw Things container: found ${count} configurations.`);
+      }
+    });
+
+    this.addCommand({
+      id: "refine-active-beat-prompt",
+      name: "Refine Beat Prompts in Active Note (Visionary / ENI Bible)",
+      callback: async () => {
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view || !view.file) {
+          new Notice("Please open a note with plot beats first.");
+          return;
+        }
+        const file = view.file;
+        const content = await this.app.vault.read(file);
+        const match = /```plotbeat\s*\n([\s\S]*?)\n```/.exec(content);
+        if (!match) {
+          new Notice("No ```plotbeat block found in active note.");
+          return;
+        }
+        try {
+          const yaml = await import("yaml");
+          const raw = yaml.parse(match[1]) || {};
+          const shoot = this.configLookup.getShoot(raw.shoot || raw.preset || this.settings.activeShoot);
+          new PromptRefineModal(
+            this.app,
+            {
+              id: "cmd-refine",
+              beat: raw.beat || 1,
+              title: raw.title,
+              prompt: raw.prompt || "",
+              character: raw.character
+            },
+            file,
+            shoot,
+            this.promptRefiner,
+            this.charResolver,
+            this.queue,
+            this.settings,
+            this.configLookup
+          ).open();
+        } catch (e: any) {
+          new Notice(`Failed to parse beat: ${e.message}`);
+        }
+      }
+    });
+
     // Settings Tab
     this.addSettingTab(new DrawThingsSettingTab(this.app, this));
   }
@@ -184,6 +268,12 @@ export default class DrawThingsPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
     this.llmClient.updateSettings(this.settings);
+    if (this.configLookup) {
+      this.configLookup.setModelsDir(this.settings.modelsDir);
+    }
+    if (this.promptRefiner) {
+      this.promptRefiner.updateClient(this.llmClient);
+    }
     this.plotbeatProcessor.updateSettings(this.settings);
     this.sceneScriptProcessor.updateSettings(this.settings);
   }
