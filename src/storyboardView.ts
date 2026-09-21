@@ -330,7 +330,7 @@ export class StoryboardView extends ItemView {
     let match: RegExpExecArray | null;
     while ((match = plotbeatRegex.exec(content)) !== null) {
       try {
-        const raw = yaml.parse(match[1]) || {};
+        const raw = yaml.parse(match[1], { uniqueKeys: false }) || {};
         const beat = raw.beat ?? beats.length + 1;
         const scene = raw.scene || defaultScene;
         const title = raw.title || `Beat ${beat}`;
@@ -365,7 +365,7 @@ export class StoryboardView extends ItemView {
     const sceneScriptRegex = /```scene-script\s*\n([\s\S]*?)\n```/g;
     while ((match = sceneScriptRegex.exec(content)) !== null) {
       try {
-        const raw = yaml.parse(match[1]) || {};
+        const raw = yaml.parse(match[1], { uniqueKeys: false }) || {};
         const scene = raw.scene || defaultScene;
         const preset = raw.preset;
         const shoot = raw.shoot || raw.preset;

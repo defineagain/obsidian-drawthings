@@ -48,7 +48,7 @@ export class PlotbeatProcessor {
 
     let parsed: any;
     try {
-      parsed = yaml.parse(source) || {};
+      parsed = yaml.parse(source, { uniqueKeys: false }) || {};
     } catch (e: any) {
       container.createDiv({ cls: "drawthings-error", text: `YAML parsing error: ${e.message}` });
       return;

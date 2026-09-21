@@ -228,7 +228,7 @@ export default class DrawThingsPlugin extends Plugin {
         }
         try {
           const yaml = await import("yaml");
-          const raw = yaml.parse(match[1]) || {};
+          const raw = yaml.parse(match[1], { uniqueKeys: false }) || {};
           const shoot = this.configLookup.getShoot(raw.shoot || raw.preset || this.settings.activeShoot);
           new PromptRefineModal(
             this.app,

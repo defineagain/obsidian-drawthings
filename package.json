@@ -1,11 +1,12 @@
 {
   "name": "obsidian-drawthings",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Script novel scenes and generate key plot beat illustrations using Draw Things CLI directly in Obsidian.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
-    "build": "node esbuild.config.mjs production"
+    "build": "node esbuild.config.mjs production",
+    "test": "node tests/noteUpdater.test.mjs"
   },
   "keywords": [
     "obsidian",
