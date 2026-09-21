@@ -59,17 +59,32 @@ export async function buildGenerationJob(
   const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
 
   // 1. Resolve Shoot / Preset
-  const shootQuery = beat.shoot || beat.preset || settings.activeShoot;
-  const shoot = configLookup.getShoot(shootQuery);
+  let shoot: ShootConfig | undefined;
+  if (beat.shoot) {
+    shoot = configLookup.getShoot(beat.shoot);
+  } else if (beat.preset) {
+    // Only treat beat.preset as a shoot if it matches a shoot in configLookup
+    shoot = configLookup.getShoot(beat.preset);
+  }
+  // Only fall back to settings.activeShoot if NEITHER shoot nor preset was specified on the beat
+  if (!shoot && !beat.preset && settings.activeShoot) {
+    shoot = configLookup.getShoot(settings.activeShoot);
+  }
+
   const presetKey = beat.preset || "";
   const preset = settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
 
   // 2. Model & LoRA compatibility
+  // Explicit beat model takes top priority, then shoot model, then preset model, then default
   let model = beat.model || shoot?.model || preset?.model || settings.defaultModel;
   const effectiveLora = shoot?.lora || "none";
   if (effectiveLora && effectiveLora.toLowerCase() !== "none") {
-    const fixed = configLookup.checkAndFixModelLoraCompatibility(model, effectiveLora);
-    model = fixed.model;
+    // If user explicitly specified their own model on the beat, don't let shoot LoRA change model architecture
+    const userSpecifiedModel = Boolean(beat.model);
+    if (!userSpecifiedModel) {
+      const fixed = configLookup.checkAndFixModelLoraCompatibility(model, effectiveLora);
+      model = fixed.model;
+    }
   }
 
   // 3. Dimensions

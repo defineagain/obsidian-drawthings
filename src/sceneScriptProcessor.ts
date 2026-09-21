@@ -10,6 +10,7 @@ import { ConfigLookup } from "./configLookup";
 import { PromptRefiner } from "./promptRefiner";
 import { PromptRefineModal } from "./refineModal";
 import { buildGenerationJob } from "./jobBuilder";
+import { resolveImageResourceUri } from "./imageResolver";
 
 export class SceneScriptProcessor {
   private app: App;
@@ -64,9 +65,9 @@ export class SceneScriptProcessor {
   private normalizeSceneData(raw: any, fileBasename: string): SceneScriptData {
     const scene = raw.scene || fileBasename || "Scene";
     const preset = raw.preset;
-    const shoot = raw.shoot || raw.preset;
+    const shoot = raw.shoot;
     const refine = raw.refine;
-    const model = raw.model || this.settings.defaultModel;
+    const model = raw.model;
     const aspect = raw.aspect || raw.ratio;
     const seedStart = raw.seed_start !== undefined ? Number(raw.seed_start) : undefined;
 
@@ -124,8 +125,13 @@ export class SceneScriptProcessor {
   }
 
   private async buildJobForBeat(beat: PlotBeatData, sourcePath: string): Promise<GenerationJob> {
-    const shootQuery = beat.shoot || beat.preset || this.settings.activeShoot;
-    const shoot = this.configLookup.getShoot(shootQuery);
+    let shoot: ShootConfig | undefined;
+    if (beat.shoot) {
+      shoot = this.configLookup.getShoot(beat.shoot);
+    } else if (beat.preset) {
+      shoot = this.configLookup.getShoot(beat.preset);
+    }
+
     const presetKey = beat.preset || "";
     const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
 
@@ -170,8 +176,15 @@ export class SceneScriptProcessor {
   private renderSceneDeck(container: HTMLElement, sceneData: SceneScriptData, ctx: MarkdownPostProcessorContext): void {
     const deck = container.createDiv({ cls: "drawthings-scene-deck" });
 
-    const shootQuery = sceneData.shoot || sceneData.preset || this.settings.activeShoot;
-    const shoot = this.configLookup.getShoot(shootQuery);
+    let shoot: ShootConfig | undefined;
+    if (sceneData.shoot) {
+      shoot = this.configLookup.getShoot(sceneData.shoot);
+    } else if (sceneData.preset) {
+      shoot = this.configLookup.getShoot(sceneData.preset);
+    }
+
+    const presetKey = sceneData.preset || "";
+    const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
 
     // Scene Top Bar
     const topBar = deck.createDiv({ cls: "drawthings-scene-topbar" });
@@ -182,9 +195,12 @@ export class SceneScriptProcessor {
     if (shoot) {
       topBarRight.createSpan({ cls: "drawthings-badge shoot-badge", text: `🎬 ${shoot.name}` });
     } else if (sceneData.preset) {
-      topBarRight.createSpan({ cls: "drawthings-badge preset-badge", text: `🎨 ${sceneData.preset}` });
+      const pName = preset?.name || sceneData.preset;
+      topBarRight.createSpan({ cls: "drawthings-badge preset-badge", text: `🎨 ${pName}` });
     }
-    topBarRight.createSpan({ cls: "drawthings-badge model-badge", text: `📦 ${shoot?.model || sceneData.model || this.settings.defaultModel}` });
+
+    const displayModel = sceneData.model || shoot?.model || preset?.model || this.settings.defaultModel;
+    topBarRight.createSpan({ cls: "drawthings-badge model-badge", text: `📦 ${displayModel}` });
     const countBadge = topBarRight.createSpan({ cls: "drawthings-badge count-badge", text: `0 / ${sceneData.beats.length} Generated` });
 
     // Action Controls
@@ -243,7 +259,7 @@ export class SceneScriptProcessor {
           statusSpan.setText("✓ Ready");
           statusSpan.className = "drawthings-grid-status status-ready";
           btnGen.setText("Regen");
-          const resourceUri = `app://local${abs}?t=${Date.now()}`;
+          const resourceUri = resolveImageResourceUri(this.app, abs, rel);
           const img = imgWrapper.createEl("img", {
             cls: "drawthings-grid-img",
             attr: { src: resourceUri, alt: beat.title || "Plate" }

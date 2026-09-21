@@ -434,9 +434,13 @@ export class ConfigLookup {
     return this.allShoots;
   }
 
-  getShoot(idOrName?: string): ShootConfig {
+  getDefaultShoot(): ShootConfig {
+    return this.allShoots[0] || BUILTIN_SHOOTS[0];
+  }
+
+  getShoot(idOrName?: string): ShootConfig | undefined {
     if (!idOrName || !idOrName.trim()) {
-      return this.allShoots[0] || BUILTIN_SHOOTS[0];
+      return undefined;
     }
 
     const clean = idOrName.trim().toLowerCase();
@@ -456,14 +460,16 @@ export class ConfigLookup {
       }
     }
 
-    // 3. Partial substring match
-    for (const s of this.allShoots) {
-      if (s.id.toLowerCase().includes(clean) || s.name.toLowerCase().includes(clean)) {
-        return s;
+    // 3. Partial substring match (require at least 3 characters)
+    if (clean.length >= 3) {
+      for (const s of this.allShoots) {
+        if (s.id.toLowerCase().includes(clean) || s.name.toLowerCase().includes(clean)) {
+          return s;
+        }
       }
     }
 
-    return this.allShoots[0] || BUILTIN_SHOOTS[0];
+    return undefined;
   }
 
   buildConfigJson(shoot: ShootConfig, extraOverrides?: Record<string, any>): string {

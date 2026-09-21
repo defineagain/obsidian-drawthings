@@ -85,17 +85,17 @@ function visit(node, visitor) {
   } else
     visit_(null, node, visitor_, Object.freeze([]));
 }
-function visit_(key, node, visitor, path7) {
-  const ctrl = callVisitor(key, node, visitor, path7);
+function visit_(key, node, visitor, path8) {
+  const ctrl = callVisitor(key, node, visitor, path8);
   if (isNode(ctrl) || isPair(ctrl)) {
-    replaceNode(key, path7, ctrl);
-    return visit_(key, ctrl, visitor, path7);
+    replaceNode(key, path8, ctrl);
+    return visit_(key, ctrl, visitor, path8);
   }
   if (typeof ctrl !== "symbol") {
     if (isCollection(node)) {
-      path7 = Object.freeze(path7.concat(node));
+      path8 = Object.freeze(path8.concat(node));
       for (let i = 0; i < node.items.length; ++i) {
-        const ci = visit_(i, node.items[i], visitor, path7);
+        const ci = visit_(i, node.items[i], visitor, path8);
         if (typeof ci === "number")
           i = ci - 1;
         else if (ci === BREAK)
@@ -106,13 +106,13 @@ function visit_(key, node, visitor, path7) {
         }
       }
     } else if (isPair(node)) {
-      path7 = Object.freeze(path7.concat(node));
-      const ck = visit_("key", node.key, visitor, path7);
+      path8 = Object.freeze(path8.concat(node));
+      const ck = visit_("key", node.key, visitor, path8);
       if (ck === BREAK)
         return BREAK;
       else if (ck === REMOVE)
         node.key = null;
-      const cv = visit_("value", node.value, visitor, path7);
+      const cv = visit_("value", node.value, visitor, path8);
       if (cv === BREAK)
         return BREAK;
       else if (cv === REMOVE)
@@ -130,17 +130,17 @@ async function visitAsync(node, visitor) {
   } else
     await visitAsync_(null, node, visitor_, Object.freeze([]));
 }
-async function visitAsync_(key, node, visitor, path7) {
-  const ctrl = await callVisitor(key, node, visitor, path7);
+async function visitAsync_(key, node, visitor, path8) {
+  const ctrl = await callVisitor(key, node, visitor, path8);
   if (isNode(ctrl) || isPair(ctrl)) {
-    replaceNode(key, path7, ctrl);
-    return visitAsync_(key, ctrl, visitor, path7);
+    replaceNode(key, path8, ctrl);
+    return visitAsync_(key, ctrl, visitor, path8);
   }
   if (typeof ctrl !== "symbol") {
     if (isCollection(node)) {
-      path7 = Object.freeze(path7.concat(node));
+      path8 = Object.freeze(path8.concat(node));
       for (let i = 0; i < node.items.length; ++i) {
-        const ci = await visitAsync_(i, node.items[i], visitor, path7);
+        const ci = await visitAsync_(i, node.items[i], visitor, path8);
         if (typeof ci === "number")
           i = ci - 1;
         else if (ci === BREAK)
@@ -151,13 +151,13 @@ async function visitAsync_(key, node, visitor, path7) {
         }
       }
     } else if (isPair(node)) {
-      path7 = Object.freeze(path7.concat(node));
-      const ck = await visitAsync_("key", node.key, visitor, path7);
+      path8 = Object.freeze(path8.concat(node));
+      const ck = await visitAsync_("key", node.key, visitor, path8);
       if (ck === BREAK)
         return BREAK;
       else if (ck === REMOVE)
         node.key = null;
-      const cv = await visitAsync_("value", node.value, visitor, path7);
+      const cv = await visitAsync_("value", node.value, visitor, path8);
       if (cv === BREAK)
         return BREAK;
       else if (cv === REMOVE)
@@ -184,23 +184,23 @@ function initVisitor(visitor) {
   }
   return visitor;
 }
-function callVisitor(key, node, visitor, path7) {
+function callVisitor(key, node, visitor, path8) {
   if (typeof visitor === "function")
-    return visitor(key, node, path7);
+    return visitor(key, node, path8);
   if (isMap(node))
-    return visitor.Map?.(key, node, path7);
+    return visitor.Map?.(key, node, path8);
   if (isSeq(node))
-    return visitor.Seq?.(key, node, path7);
+    return visitor.Seq?.(key, node, path8);
   if (isPair(node))
-    return visitor.Pair?.(key, node, path7);
+    return visitor.Pair?.(key, node, path8);
   if (isScalar(node))
-    return visitor.Scalar?.(key, node, path7);
+    return visitor.Scalar?.(key, node, path8);
   if (isAlias(node))
-    return visitor.Alias?.(key, node, path7);
+    return visitor.Alias?.(key, node, path8);
   return void 0;
 }
-function replaceNode(key, path7, node) {
-  const parent = path7[path7.length - 1];
+function replaceNode(key, path8, node) {
+  const parent = path8[path8.length - 1];
   if (isCollection(parent)) {
     parent.items[key] = node;
   } else if (isPair(parent)) {
@@ -800,10 +800,10 @@ var init_createNode = __esm({
 });
 
 // node_modules/yaml/browser/dist/nodes/Collection.js
-function collectionFromPath(schema4, path7, value) {
+function collectionFromPath(schema4, path8, value) {
   let v = value;
-  for (let i = path7.length - 1; i >= 0; --i) {
-    const k = path7[i];
+  for (let i = path8.length - 1; i >= 0; --i) {
+    const k = path8[i];
     if (typeof k === "number" && Number.isInteger(k) && k >= 0) {
       const a = [];
       a[k] = v;
@@ -828,7 +828,7 @@ var init_Collection = __esm({
     init_createNode();
     init_identity();
     init_Node();
-    isEmptyPath = (path7) => path7 == null || typeof path7 === "object" && !!path7[Symbol.iterator]().next().done;
+    isEmptyPath = (path8) => path8 == null || typeof path8 === "object" && !!path8[Symbol.iterator]().next().done;
     Collection = class extends NodeBase {
       constructor(type, schema4) {
         super(type);
@@ -858,11 +858,11 @@ var init_Collection = __esm({
        * be a Pair instance or a `{ key, value }` object, which may not have a key
        * that already exists in the map.
        */
-      addIn(path7, value) {
-        if (isEmptyPath(path7))
+      addIn(path8, value) {
+        if (isEmptyPath(path8))
           this.add(value);
         else {
-          const [key, ...rest] = path7;
+          const [key, ...rest] = path8;
           const node = this.get(key, true);
           if (isCollection(node))
             node.addIn(rest, value);
@@ -876,8 +876,8 @@ var init_Collection = __esm({
        * Removes a value from the collection.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path7) {
-        const [key, ...rest] = path7;
+      deleteIn(path8) {
+        const [key, ...rest] = path8;
         if (rest.length === 0)
           return this.delete(key);
         const node = this.get(key, true);
@@ -891,8 +891,8 @@ var init_Collection = __esm({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path7, keepScalar) {
-        const [key, ...rest] = path7;
+      getIn(path8, keepScalar) {
+        const [key, ...rest] = path8;
         const node = this.get(key, true);
         if (rest.length === 0)
           return !keepScalar && isScalar(node) ? node.value : node;
@@ -910,8 +910,8 @@ var init_Collection = __esm({
       /**
        * Checks if the collection includes a value with the key `key`.
        */
-      hasIn(path7) {
-        const [key, ...rest] = path7;
+      hasIn(path8) {
+        const [key, ...rest] = path8;
         if (rest.length === 0)
           return this.has(key);
         const node = this.get(key, true);
@@ -921,8 +921,8 @@ var init_Collection = __esm({
        * Sets a value in this collection. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path7, value) {
-        const [key, ...rest] = path7;
+      setIn(path8, value) {
+        const [key, ...rest] = path8;
         if (rest.length === 0) {
           this.set(key, value);
         } else {
@@ -3356,9 +3356,9 @@ var init_Document = __esm({
           this.contents.add(value);
       }
       /** Adds a value to the document. */
-      addIn(path7, value) {
+      addIn(path8, value) {
         if (assertCollection(this.contents))
-          this.contents.addIn(path7, value);
+          this.contents.addIn(path8, value);
       }
       /**
        * Create a new `Alias` node, ensuring that the target `node` has the required anchor.
@@ -3433,14 +3433,14 @@ var init_Document = __esm({
        * Removes a value from the document.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path7) {
-        if (isEmptyPath(path7)) {
+      deleteIn(path8) {
+        if (isEmptyPath(path8)) {
           if (this.contents == null)
             return false;
           this.contents = null;
           return true;
         }
-        return assertCollection(this.contents) ? this.contents.deleteIn(path7) : false;
+        return assertCollection(this.contents) ? this.contents.deleteIn(path8) : false;
       }
       /**
        * Returns item at `key`, or `undefined` if not found. By default unwraps
@@ -3455,10 +3455,10 @@ var init_Document = __esm({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path7, keepScalar) {
-        if (isEmptyPath(path7))
+      getIn(path8, keepScalar) {
+        if (isEmptyPath(path8))
           return !keepScalar && isScalar(this.contents) ? this.contents.value : this.contents;
-        return isCollection(this.contents) ? this.contents.getIn(path7, keepScalar) : void 0;
+        return isCollection(this.contents) ? this.contents.getIn(path8, keepScalar) : void 0;
       }
       /**
        * Checks if the document includes a value with the key `key`.
@@ -3469,10 +3469,10 @@ var init_Document = __esm({
       /**
        * Checks if the document includes a value at `path`.
        */
-      hasIn(path7) {
-        if (isEmptyPath(path7))
+      hasIn(path8) {
+        if (isEmptyPath(path8))
           return this.contents !== void 0;
-        return isCollection(this.contents) ? this.contents.hasIn(path7) : false;
+        return isCollection(this.contents) ? this.contents.hasIn(path8) : false;
       }
       /**
        * Sets a value in this document. For `!!set`, `value` needs to be a
@@ -3489,13 +3489,13 @@ var init_Document = __esm({
        * Sets a value in this document. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path7, value) {
-        if (isEmptyPath(path7)) {
+      setIn(path8, value) {
+        if (isEmptyPath(path8)) {
           this.contents = value;
         } else if (this.contents == null) {
-          this.contents = collectionFromPath(this.schema, Array.from(path7), value);
+          this.contents = collectionFromPath(this.schema, Array.from(path8), value);
         } else if (assertCollection(this.contents)) {
-          this.contents.setIn(path7, value);
+          this.contents.setIn(path8, value);
         }
       }
       /**
@@ -4610,9 +4610,9 @@ function doubleQuotedValue(source, onError) {
         res += parseCharCode(source, i + 1, length, onError);
         i += length;
       } else {
-        const raw = source.substr(i - 1, 2);
-        onError(i - 1, "BAD_DQ_ESCAPE", `Invalid escape sequence ${raw}`);
-        res += raw;
+        const raw2 = source.substr(i - 1, 2);
+        onError(i - 1, "BAD_DQ_ESCAPE", `Invalid escape sequence ${raw2}`);
+        res += raw2;
       }
     } else if (ch === " " || ch === "	") {
       const wsStart = i;
@@ -4651,9 +4651,9 @@ function parseCharCode(source, offset, length, onError) {
   try {
     return String.fromCodePoint(code);
   } catch {
-    const raw = source.substr(offset - 2, length + 2);
-    onError(offset - 2, "BAD_DQ_ESCAPE", `Invalid escape sequence ${raw}`);
-    return raw;
+    const raw2 = source.substr(offset - 2, length + 2);
+    onError(offset - 2, "BAD_DQ_ESCAPE", `Invalid escape sequence ${raw2}`);
+    return raw2;
   }
 }
 var escapeCodes;
@@ -5400,15 +5400,15 @@ function visit2(cst, visitor) {
     cst = { start: cst.start, value: cst.value };
   _visit(Object.freeze([]), cst, visitor);
 }
-function _visit(path7, item, visitor) {
-  let ctrl = visitor(item, path7);
+function _visit(path8, item, visitor) {
+  let ctrl = visitor(item, path8);
   if (typeof ctrl === "symbol")
     return ctrl;
   for (const field of ["key", "value"]) {
     const token = item[field];
     if (token && "items" in token) {
       for (let i = 0; i < token.items.length; ++i) {
-        const ci = _visit(Object.freeze(path7.concat([[field, i]])), token.items[i], visitor);
+        const ci = _visit(Object.freeze(path8.concat([[field, i]])), token.items[i], visitor);
         if (typeof ci === "number")
           i = ci - 1;
         else if (ci === BREAK2)
@@ -5419,10 +5419,10 @@ function _visit(path7, item, visitor) {
         }
       }
       if (typeof ctrl === "function" && field === "key")
-        ctrl = ctrl(item, path7);
+        ctrl = ctrl(item, path8);
     }
   }
-  return typeof ctrl === "function" ? ctrl(item, path7) : ctrl;
+  return typeof ctrl === "function" ? ctrl(item, path8) : ctrl;
 }
 var BREAK2, SKIP2, REMOVE2;
 var init_cst_visit = __esm({
@@ -5433,9 +5433,9 @@ var init_cst_visit = __esm({
     visit2.BREAK = BREAK2;
     visit2.SKIP = SKIP2;
     visit2.REMOVE = REMOVE2;
-    visit2.itemAtPath = (cst, path7) => {
+    visit2.itemAtPath = (cst, path8) => {
       let item = cst;
-      for (const [field, index] of path7) {
+      for (const [field, index] of path8) {
         const tok = item?.[field];
         if (tok && "items" in tok) {
           item = tok.items[index];
@@ -5444,9 +5444,9 @@ var init_cst_visit = __esm({
       }
       return item;
     };
-    visit2.parentCollection = (cst, path7) => {
-      const parent = visit2.itemAtPath(cst, path7.slice(0, -1));
-      const field = path7[path7.length - 1][0];
+    visit2.parentCollection = (cst, path8) => {
+      const parent = visit2.itemAtPath(cst, path8.slice(0, -1));
+      const field = path8[path8.length - 1][0];
       const coll = parent?.[field];
       if (coll && "items" in coll)
         return coll;
@@ -7243,7 +7243,7 @@ __export(main_exports, {
   default: () => DrawThingsPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian9 = require("obsidian");
+var import_obsidian10 = require("obsidian");
 
 // src/settings.ts
 var import_obsidian = require("obsidian");
@@ -7978,9 +7978,9 @@ var CharacterResolver = class {
 };
 
 // src/plotbeatProcessor.ts
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 init_browser();
-var path3 = __toESM(require("path"));
+var path4 = __toESM(require("path"));
 var fs2 = __toESM(require("fs"));
 
 // src/refineModal.ts
@@ -8308,15 +8308,25 @@ async function buildGenerationJob(app, beat, sourcePath, settings, configLookup,
   const sceneSlug = beat.scene?.toLowerCase().replace(/[^a-z0-9_-]/g, "_") || "scene";
   const beatSlug = String(beat.beat).padStart(2, "0");
   const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
-  const shootQuery = beat.shoot || beat.preset || settings.activeShoot;
-  const shoot = configLookup.getShoot(shootQuery);
+  let shoot;
+  if (beat.shoot) {
+    shoot = configLookup.getShoot(beat.shoot);
+  } else if (beat.preset) {
+    shoot = configLookup.getShoot(beat.preset);
+  }
+  if (!shoot && !beat.preset && settings.activeShoot) {
+    shoot = configLookup.getShoot(settings.activeShoot);
+  }
   const presetKey = beat.preset || "";
   const preset = settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
   let model = beat.model || shoot?.model || preset?.model || settings.defaultModel;
   const effectiveLora = shoot?.lora || "none";
   if (effectiveLora && effectiveLora.toLowerCase() !== "none") {
-    const fixed = configLookup.checkAndFixModelLoraCompatibility(model, effectiveLora);
-    model = fixed.model;
+    const userSpecifiedModel = Boolean(beat.model);
+    if (!userSpecifiedModel) {
+      const fixed = configLookup.checkAndFixModelLoraCompatibility(model, effectiveLora);
+      model = fixed.model;
+    }
   }
   let width = beat.width;
   let height = beat.height;
@@ -8701,6 +8711,38 @@ var PromptRefineModal = class extends import_obsidian3.Modal {
   }
 };
 
+// src/imageResolver.ts
+var import_obsidian4 = require("obsidian");
+var path3 = __toESM(require("path"));
+function resolveImageResourceUri(app, absPath, relPath) {
+  try {
+    const adapter = app.vault.adapter;
+    if (adapter && typeof adapter.getResourcePath === "function") {
+      const vaultPath = typeof adapter.getBasePath === "function" ? adapter.getBasePath() : "";
+      if (vaultPath && absPath.startsWith(vaultPath)) {
+        const relToVault = path3.relative(vaultPath, absPath);
+        const resourcePath = adapter.getResourcePath((0, import_obsidian4.normalizePath)(relToVault));
+        if (resourcePath) {
+          return resourcePath.includes("?") ? `${resourcePath}&t=${Date.now()}` : `${resourcePath}?t=${Date.now()}`;
+        }
+      }
+      if (relPath && !path3.isAbsolute(relPath)) {
+        const resourcePath = adapter.getResourcePath((0, import_obsidian4.normalizePath)(relPath));
+        if (resourcePath) {
+          return resourcePath.includes("?") ? `${resourcePath}&t=${Date.now()}` : `${resourcePath}?t=${Date.now()}`;
+        }
+      }
+      const absResourcePath = adapter.getResourcePath(absPath);
+      if (absResourcePath) {
+        return absResourcePath.includes("?") ? `${absResourcePath}&t=${Date.now()}` : `${absResourcePath}?t=${Date.now()}`;
+      }
+    }
+  } catch (e) {
+    console.warn("[DrawThings] resolveImageResourceUri failed:", e);
+  }
+  return `app://local${absPath}?t=${Date.now()}`;
+}
+
 // src/plotbeatProcessor.ts
 var PlotbeatProcessor = class {
   app;
@@ -8734,38 +8776,38 @@ var PlotbeatProcessor = class {
       return;
     }
     const currentFile = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
-    const fileBasename = currentFile instanceof import_obsidian4.TFile ? currentFile.basename : "Scene";
+    const fileBasename = currentFile instanceof import_obsidian5.TFile ? currentFile.basename : "Scene";
     const beatData = this.normalizeBeatData(parsed, fileBasename, ctx.sourcePath);
     this.renderCard(container, beatData, ctx);
   }
-  normalizeBeatData(raw, fileBasename, sourcePath) {
-    const beat = raw.beat ?? 1;
-    const scene = raw.scene || fileBasename || "Scene";
-    const title = raw.title || `Beat ${beat}`;
+  normalizeBeatData(raw2, fileBasename, sourcePath) {
+    const beat = raw2.beat ?? 1;
+    const scene = raw2.scene || fileBasename || "Scene";
+    const title = raw2.title || `Beat ${beat}`;
     const id = `${scene}-${beat}-${title}`.toLowerCase().replace(/[^a-z0-9_-]/g, "_");
     return {
       id,
       beat,
       title,
       scene,
-      character: raw.character,
-      preset: raw.preset,
-      shoot: raw.shoot || raw.preset,
-      refine: raw.refine,
-      model: raw.model,
-      prompt: raw.prompt || "",
-      negative_prompt: raw.negative_prompt || raw.negative || "",
-      width: raw.width,
-      height: raw.height,
-      aspect: raw.aspect || raw.ratio,
-      steps: raw.steps,
-      cfg: raw.cfg,
-      seed: raw.seed !== void 0 ? Number(raw.seed) : void 0,
-      image: raw.image,
-      strength: raw.strength,
-      prompt_anchor: raw.prompt_anchor,
-      config_json: raw.config_json,
-      output: raw.output
+      character: raw2.character,
+      preset: raw2.preset,
+      shoot: raw2.shoot || raw2.preset,
+      refine: raw2.refine,
+      model: raw2.model,
+      prompt: raw2.prompt || "",
+      negative_prompt: raw2.negative_prompt || raw2.negative || "",
+      width: raw2.width,
+      height: raw2.height,
+      aspect: raw2.aspect || raw2.ratio,
+      steps: raw2.steps,
+      cfg: raw2.cfg,
+      seed: raw2.seed !== void 0 ? Number(raw2.seed) : void 0,
+      image: raw2.image,
+      strength: raw2.strength,
+      prompt_anchor: raw2.prompt_anchor,
+      config_json: raw2.config_json,
+      output: raw2.output
     };
   }
   async resolveJobParameters(beat, sourcePath) {
@@ -8782,7 +8824,7 @@ var PlotbeatProcessor = class {
     if (shouldRefine) {
       const mode = (typeof beat.refine === "string" ? beat.refine : null) || shoot?.refine_mode || this.settings.promptRefineMode || "unified";
       try {
-        new import_obsidian4.Notice(`\u{1F9E0} Refining Beat ${beat.beat} prompt with ${mode.toUpperCase()} AI...`);
+        new import_obsidian5.Notice(`\u{1F9E0} Refining Beat ${beat.beat} prompt with ${mode.toUpperCase()} AI...`);
         effectivePrompt = await this.promptRefiner.refine(effectivePrompt, {
           mode,
           promptAnchor: beat.prompt_anchor || shoot?.prompt_anchor,
@@ -8806,8 +8848,14 @@ var PlotbeatProcessor = class {
   }
   renderCard(container, beat, ctx) {
     const card = container.createDiv({ cls: "drawthings-beat-card" });
-    const shootQuery = beat.shoot || beat.preset || this.settings.activeShoot;
-    const shoot = this.configLookup.getShoot(shootQuery);
+    let shoot;
+    if (beat.shoot) {
+      shoot = this.configLookup.getShoot(beat.shoot);
+    } else if (beat.preset) {
+      shoot = this.configLookup.getShoot(beat.preset);
+    }
+    const presetKey = beat.preset || "";
+    const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
     const header = card.createDiv({ cls: "drawthings-card-header" });
     const headerLeft = header.createDiv({ cls: "drawthings-card-header-left" });
     const beatBadge = headerLeft.createSpan({ cls: "drawthings-badge beat-badge", text: `Beat ${beat.beat}` });
@@ -8821,7 +8869,8 @@ var PlotbeatProcessor = class {
     if (shoot) {
       headerRight.createSpan({ cls: "drawthings-badge shoot-badge", text: `\u{1F3AC} ${shoot.name}` });
     } else if (beat.preset) {
-      headerRight.createSpan({ cls: "drawthings-badge preset-badge", text: `\u{1F3A8} ${beat.preset}` });
+      const pName = preset?.name || beat.preset;
+      headerRight.createSpan({ cls: "drawthings-badge preset-badge", text: `\u{1F3A8} ${pName}` });
     }
     const statusBadge = headerRight.createSpan({ cls: "drawthings-badge status-badge status-idle", text: "Idle" });
     const vaultPath = this.app.vault.adapter.getBasePath ? this.app.vault.adapter.getBasePath() : "";
@@ -8830,7 +8879,7 @@ var PlotbeatProcessor = class {
     const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
     const defaultRel = `${this.settings.outputFolderPattern.replace("{scene}", sceneSlug)}/${beatSlug}_${titleSlug}.png`;
     const relOutputPath = beat.output || defaultRel;
-    const absOutputPath = path3.isAbsolute(relOutputPath) ? relOutputPath : path3.join(vaultPath, relOutputPath);
+    const absOutputPath = path4.isAbsolute(relOutputPath) ? relOutputPath : path4.join(vaultPath, relOutputPath);
     const body = card.createDiv({ cls: "drawthings-card-body" });
     const previewArea = body.createDiv({ cls: "drawthings-preview-area" });
     const imgContainer = previewArea.createDiv({ cls: "drawthings-image-wrapper" });
@@ -8851,7 +8900,7 @@ var PlotbeatProcessor = class {
     metaSpecs.createSpan({ text: `${shoot?.model || beat.model || this.settings.defaultModel} \u2022 Seed: ${beat.seed ?? "Auto"}` });
     btnRefine.addEventListener("click", () => {
       const currentFile = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
-      if (currentFile instanceof import_obsidian4.TFile) {
+      if (currentFile instanceof import_obsidian5.TFile) {
         new PromptRefineModal(
           this.app,
           beat,
@@ -8869,7 +8918,7 @@ var PlotbeatProcessor = class {
           }
         ).open();
       } else {
-        new import_obsidian4.Notice("Cannot locate active note file.");
+        new import_obsidian5.Notice("Cannot locate active note file.");
       }
     });
     const updateImageDisplay = () => {
@@ -8878,7 +8927,7 @@ var PlotbeatProcessor = class {
         statusBadge.className = "drawthings-badge status-badge status-done";
         statusBadge.setText("Generated");
         btnGenerate.setText("\u{1F504} Regenerate");
-        const resourceUri = `app://local${absOutputPath}?t=${Date.now()}`;
+        const resourceUri = resolveImageResourceUri(this.app, absOutputPath, relOutputPath);
         const img = imgContainer.createEl("img", {
           cls: "drawthings-preview-img",
           attr: { src: resourceUri, alt: beat.title || "Plot Beat Plate" }
@@ -8916,7 +8965,7 @@ var PlotbeatProcessor = class {
     btnCopyLink.addEventListener("click", () => {
       const embedMarkdown = `![[${relOutputPath}]]`;
       navigator.clipboard.writeText(embedMarkdown);
-      new import_obsidian4.Notice(`Copied: ${embedMarkdown}`);
+      new import_obsidian5.Notice(`Copied: ${embedMarkdown}`);
     });
     btnCancel.addEventListener("click", () => {
       const job = this.queue.getJobForBeat(beat.id);
@@ -8961,9 +9010,9 @@ var PlotbeatProcessor = class {
 };
 
 // src/sceneScriptProcessor.ts
-var import_obsidian5 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 init_browser();
-var path4 = __toESM(require("path"));
+var path5 = __toESM(require("path"));
 var fs3 = __toESM(require("fs"));
 var SceneScriptProcessor = class {
   app;
@@ -8997,19 +9046,19 @@ var SceneScriptProcessor = class {
       return;
     }
     const currentFile = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
-    const fileBasename = currentFile instanceof import_obsidian5.TFile ? currentFile.basename : "Scene";
+    const fileBasename = currentFile instanceof import_obsidian6.TFile ? currentFile.basename : "Scene";
     const sceneData = this.normalizeSceneData(parsed, fileBasename);
     this.renderSceneDeck(container, sceneData, ctx);
   }
-  normalizeSceneData(raw, fileBasename) {
-    const scene = raw.scene || fileBasename || "Scene";
-    const preset = raw.preset;
-    const shoot = raw.shoot || raw.preset;
-    const refine = raw.refine;
-    const model = raw.model || this.settings.defaultModel;
-    const aspect = raw.aspect || raw.ratio;
-    const seedStart = raw.seed_start !== void 0 ? Number(raw.seed_start) : void 0;
-    const rawBeats = Array.isArray(raw.beats) ? raw.beats : [];
+  normalizeSceneData(raw2, fileBasename) {
+    const scene = raw2.scene || fileBasename || "Scene";
+    const preset = raw2.preset;
+    const shoot = raw2.shoot;
+    const refine = raw2.refine;
+    const model = raw2.model;
+    const aspect = raw2.aspect || raw2.ratio;
+    const seedStart = raw2.seed_start !== void 0 ? Number(raw2.seed_start) : void 0;
+    const rawBeats = Array.isArray(raw2.beats) ? raw2.beats : [];
     const beats = rawBeats.map((b, index) => {
       const beatNum = b.beat !== void 0 ? b.beat : index + 1;
       const title = b.title || `Beat ${beatNum}`;
@@ -9029,17 +9078,17 @@ var SceneScriptProcessor = class {
         refine: b.refine !== void 0 ? b.refine : refine,
         model: b.model || model,
         prompt: b.prompt || "",
-        negative_prompt: b.negative_prompt || b.negative || raw.negative_prompt || raw.negative,
-        width: b.width || raw.width,
-        height: b.height || raw.height,
+        negative_prompt: b.negative_prompt || b.negative || raw2.negative_prompt || raw2.negative,
+        width: b.width || raw2.width,
+        height: b.height || raw2.height,
         aspect: b.aspect || aspect,
-        steps: b.steps || raw.steps,
-        cfg: b.cfg || raw.cfg,
+        steps: b.steps || raw2.steps,
+        cfg: b.cfg || raw2.cfg,
         seed: seed !== void 0 ? Number(seed) : void 0,
         image: b.image,
         strength: b.strength,
-        prompt_anchor: b.prompt_anchor || raw.prompt_anchor,
-        config_json: b.config_json || raw.config_json,
+        prompt_anchor: b.prompt_anchor || raw2.prompt_anchor,
+        config_json: b.config_json || raw2.config_json,
         output: b.output
       };
     });
@@ -9050,17 +9099,21 @@ var SceneScriptProcessor = class {
       refine,
       model,
       aspect,
-      width: raw.width,
-      height: raw.height,
-      steps: raw.steps,
-      cfg: raw.cfg,
+      width: raw2.width,
+      height: raw2.height,
+      steps: raw2.steps,
+      cfg: raw2.cfg,
       seed_start: seedStart,
       beats
     };
   }
   async buildJobForBeat(beat, sourcePath) {
-    const shootQuery = beat.shoot || beat.preset || this.settings.activeShoot;
-    const shoot = this.configLookup.getShoot(shootQuery);
+    let shoot;
+    if (beat.shoot) {
+      shoot = this.configLookup.getShoot(beat.shoot);
+    } else if (beat.preset) {
+      shoot = this.configLookup.getShoot(beat.preset);
+    }
     const presetKey = beat.preset || "";
     const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
     let charPrompt = "";
@@ -9072,7 +9125,7 @@ var SceneScriptProcessor = class {
     if (shouldRefine) {
       const mode = (typeof beat.refine === "string" ? beat.refine : null) || shoot?.refine_mode || this.settings.promptRefineMode || "unified";
       try {
-        new import_obsidian5.Notice(`\u{1F9E0} Refining Beat ${beat.beat} prompt with ${mode.toUpperCase()} AI...`);
+        new import_obsidian6.Notice(`\u{1F9E0} Refining Beat ${beat.beat} prompt with ${mode.toUpperCase()} AI...`);
         effectivePrompt = await this.promptRefiner.refine(effectivePrompt, {
           mode,
           promptAnchor: beat.prompt_anchor || shoot?.prompt_anchor,
@@ -9096,8 +9149,14 @@ var SceneScriptProcessor = class {
   }
   renderSceneDeck(container, sceneData, ctx) {
     const deck = container.createDiv({ cls: "drawthings-scene-deck" });
-    const shootQuery = sceneData.shoot || sceneData.preset || this.settings.activeShoot;
-    const shoot = this.configLookup.getShoot(shootQuery);
+    let shoot;
+    if (sceneData.shoot) {
+      shoot = this.configLookup.getShoot(sceneData.shoot);
+    } else if (sceneData.preset) {
+      shoot = this.configLookup.getShoot(sceneData.preset);
+    }
+    const presetKey = sceneData.preset || "";
+    const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
     const topBar = deck.createDiv({ cls: "drawthings-scene-topbar" });
     const topBarLeft = topBar.createDiv({ cls: "drawthings-scene-topbar-left" });
     topBarLeft.createEl("h3", { cls: "drawthings-scene-title", text: `\u{1F3AC} ${sceneData.scene}` });
@@ -9105,9 +9164,11 @@ var SceneScriptProcessor = class {
     if (shoot) {
       topBarRight.createSpan({ cls: "drawthings-badge shoot-badge", text: `\u{1F3AC} ${shoot.name}` });
     } else if (sceneData.preset) {
-      topBarRight.createSpan({ cls: "drawthings-badge preset-badge", text: `\u{1F3A8} ${sceneData.preset}` });
+      const pName = preset?.name || sceneData.preset;
+      topBarRight.createSpan({ cls: "drawthings-badge preset-badge", text: `\u{1F3A8} ${pName}` });
     }
-    topBarRight.createSpan({ cls: "drawthings-badge model-badge", text: `\u{1F4E6} ${shoot?.model || sceneData.model || this.settings.defaultModel}` });
+    const displayModel = sceneData.model || shoot?.model || preset?.model || this.settings.defaultModel;
+    topBarRight.createSpan({ cls: "drawthings-badge model-badge", text: `\u{1F4E6} ${displayModel}` });
     const countBadge = topBarRight.createSpan({ cls: "drawthings-badge count-badge", text: `0 / ${sceneData.beats.length} Generated` });
     const controls = deck.createDiv({ cls: "drawthings-scene-controls" });
     const btnGenerateAll = controls.createEl("button", { cls: "mod-cta drawthings-btn", text: "\u26A1 Generate All Scene Plates" });
@@ -9122,7 +9183,7 @@ var SceneScriptProcessor = class {
         const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
         const defaultRel = `${this.settings.outputFolderPattern.replace("{scene}", sceneSlug)}/${beatSlug}_${titleSlug}.png`;
         const rel = beat.output || defaultRel;
-        const abs = path4.isAbsolute(rel) ? rel : path4.join(vaultPath, rel);
+        const abs = path5.isAbsolute(rel) ? rel : path5.join(vaultPath, rel);
         if (fs3.existsSync(abs)) done++;
       }
       countBadge.setText(`${done} / ${sceneData.beats.length} Generated`);
@@ -9134,7 +9195,7 @@ var SceneScriptProcessor = class {
       const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
       const defaultRel = `${this.settings.outputFolderPattern.replace("{scene}", sceneSlug)}/${beatSlug}_${titleSlug}.png`;
       const rel = beat.output || defaultRel;
-      const abs = path4.isAbsolute(rel) ? rel : path4.join(vaultPath, rel);
+      const abs = path5.isAbsolute(rel) ? rel : path5.join(vaultPath, rel);
       const cardHead = beatCard.createDiv({ cls: "drawthings-grid-card-head" });
       cardHead.createSpan({ cls: "drawthings-badge beat-badge", text: `Beat ${beat.beat}` });
       if (beat.character) {
@@ -9153,7 +9214,7 @@ var SceneScriptProcessor = class {
           statusSpan.setText("\u2713 Ready");
           statusSpan.className = "drawthings-grid-status status-ready";
           btnGen.setText("Regen");
-          const resourceUri = `app://local${abs}?t=${Date.now()}`;
+          const resourceUri = resolveImageResourceUri(this.app, abs, rel);
           const img = imgWrapper.createEl("img", {
             cls: "drawthings-grid-img",
             attr: { src: resourceUri, alt: beat.title || "Plate" }
@@ -9173,7 +9234,7 @@ var SceneScriptProcessor = class {
       });
       btnRefine.addEventListener("click", () => {
         const currentFile = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
-        if (currentFile instanceof import_obsidian5.TFile) {
+        if (currentFile instanceof import_obsidian6.TFile) {
           new PromptRefineModal(
             this.app,
             beat,
@@ -9190,7 +9251,7 @@ var SceneScriptProcessor = class {
             }
           ).open();
         } else {
-          new import_obsidian5.Notice("Cannot locate active note file.");
+          new import_obsidian6.Notice("Cannot locate active note file.");
         }
       });
       this.queue.subscribe((job) => {
@@ -9208,7 +9269,7 @@ var SceneScriptProcessor = class {
       });
     }
     btnGenerateAll.addEventListener("click", async () => {
-      new import_obsidian5.Notice(`Enqueuing ${sceneData.beats.length} beats for "${sceneData.scene}"...`);
+      new import_obsidian6.Notice(`Enqueuing ${sceneData.beats.length} beats for "${sceneData.scene}"...`);
       for (const beat of sceneData.beats) {
         const job = await this.buildJobForBeat(beat, ctx.sourcePath);
         this.queue.enqueue(job);
@@ -9221,9 +9282,9 @@ var SceneScriptProcessor = class {
 };
 
 // src/storyboardView.ts
-var import_obsidian7 = require("obsidian");
+var import_obsidian8 = require("obsidian");
 init_browser();
-var path5 = __toESM(require("path"));
+var path6 = __toESM(require("path"));
 var fs4 = __toESM(require("fs"));
 
 // src/beatPrompts.ts
@@ -9322,9 +9383,9 @@ Response snippet: ${rawText.slice(0, 250)}...`);
 }
 
 // src/beatReviewModal.ts
-var import_obsidian6 = require("obsidian");
+var import_obsidian7 = require("obsidian");
 init_browser();
-var BeatReviewModal = class extends import_obsidian6.Modal {
+var BeatReviewModal = class extends import_obsidian7.Modal {
   sceneName;
   preset;
   beats;
@@ -9441,7 +9502,7 @@ var BeatReviewModal = class extends import_obsidian6.Modal {
   async insertSceneScript(atTop) {
     const activeBeats = this.getFilteredBeats();
     if (activeBeats.length === 0) {
-      new import_obsidian6.Notice("No beats selected.");
+      new import_obsidian7.Notice("No beats selected.");
       return;
     }
     const scriptObj = {
@@ -9476,13 +9537,13 @@ ${yamlStr}\`\`\`
       newContent = content + "\n\n" + block;
     }
     await this.app.vault.modify(this.targetFile, newContent);
-    new import_obsidian6.Notice(`Inserted scene script block into ${this.targetFile.basename}!`);
+    new import_obsidian7.Notice(`Inserted scene script block into ${this.targetFile.basename}!`);
     this.close();
   }
   async insertInlinePlotbeats() {
     const activeBeats = this.getFilteredBeats();
     if (activeBeats.length === 0) {
-      new import_obsidian6.Notice("No beats selected.");
+      new import_obsidian7.Notice("No beats selected.");
       return;
     }
     let blocks = "\n\n## Visual Scene Plates\n";
@@ -9505,7 +9566,7 @@ ${stringify3(beatObj)}\`\`\`
     }
     const content = await this.app.vault.read(this.targetFile);
     await this.app.vault.modify(this.targetFile, content + blocks);
-    new import_obsidian6.Notice(`Inserted ${activeBeats.length} inline plotbeats into ${this.targetFile.basename}!`);
+    new import_obsidian7.Notice(`Inserted ${activeBeats.length} inline plotbeats into ${this.targetFile.basename}!`);
     this.close();
   }
   async queueSelectedBeats() {
@@ -9563,13 +9624,13 @@ ${stringify3(beatObj)}\`\`\`
         logs: []
       });
     }
-    new import_obsidian6.Notice(`Queued ${activeBeats.length} plates for generation!`);
+    new import_obsidian7.Notice(`Queued ${activeBeats.length} plates for generation!`);
   }
 };
 
 // src/storyboardView.ts
 var STORYBOARD_VIEW_TYPE = "drawthings-storyboard-view";
-var StoryboardView = class extends import_obsidian7.ItemView {
+var StoryboardView = class extends import_obsidian8.ItemView {
   queue;
   settings;
   charResolver;
@@ -9599,7 +9660,7 @@ var StoryboardView = class extends import_obsidian7.ItemView {
   async onOpen() {
     this.registerEvent(
       this.app.workspace.on("active-leaf-change", () => {
-        const md = this.app.workspace.getActiveViewOfType(import_obsidian7.MarkdownView);
+        const md = this.app.workspace.getActiveViewOfType(import_obsidian8.MarkdownView);
         if (md && md.file) {
           this.currentFile = md.file;
         }
@@ -9622,7 +9683,7 @@ var StoryboardView = class extends import_obsidian7.ItemView {
   async refresh() {
     const container = this.containerEl.children[1];
     container.empty();
-    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian7.MarkdownView);
+    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian8.MarkdownView);
     if (activeView && activeView.file) {
       this.currentFile = activeView.file;
     } else if (!this.currentFile) {
@@ -9639,7 +9700,7 @@ var StoryboardView = class extends import_obsidian7.ItemView {
     }
     const header = root.createDiv({ cls: "drawthings-sidebar-header" });
     header.createEl("h4", { cls: "drawthings-sidebar-title", text: `\u{1F3AC} ${file.basename}` });
-    const activeShoot = this.configLookup.getShoot(this.settings.activeShoot);
+    const activeShoot = this.configLookup.getShoot(this.settings.activeShoot) || this.configLookup.getDefaultShoot();
     if (activeShoot) {
       header.createSpan({ cls: "drawthings-badge shoot-badge", text: `Active: ${activeShoot.name}` });
     }
@@ -9672,7 +9733,7 @@ var StoryboardView = class extends import_obsidian7.ItemView {
     const btnGenAll = actionsBar.createEl("button", { cls: "mod-cta drawthings-btn drawthings-btn-sm", text: `\u26A1 Generate All (${beats.length})` });
     const btnClear = actionsBar.createEl("button", { cls: "mod-warning drawthings-btn drawthings-btn-sm", text: "Clear Queue" });
     btnGenAll.addEventListener("click", async () => {
-      new import_obsidian7.Notice(`Queueing ${beats.length} beats from ${file.basename}...`);
+      new import_obsidian8.Notice(`Queueing ${beats.length} beats from ${file.basename}...`);
       for (const beat of beats) {
         const job = await this.buildJob(beat, file.path);
         this.queue.enqueue(job);
@@ -9690,15 +9751,16 @@ var StoryboardView = class extends import_obsidian7.ItemView {
       const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
       const defaultRel = `${this.settings.outputFolderPattern.replace("{scene}", sceneSlug)}/${beatSlug}_${titleSlug}.png`;
       const rel = beat.output || defaultRel;
-      const abs = path5.isAbsolute(rel) ? rel : path5.join(vaultPath, rel);
+      const abs = path6.isAbsolute(rel) ? rel : path6.join(vaultPath, rel);
       const exists = fs4.existsSync(abs);
       const itemTop = item.createDiv({ cls: "drawthings-sidebar-item-top" });
       itemTop.createSpan({ cls: "drawthings-badge beat-badge", text: `Beat ${beat.beat}` });
       itemTop.createSpan({ cls: "drawthings-sidebar-item-title", text: beat.title || "" });
       if (exists) {
         const thumb = item.createDiv({ cls: "drawthings-sidebar-thumb" });
+        const resourceUri = resolveImageResourceUri(this.app, abs, rel);
         thumb.createEl("img", {
-          attr: { src: `app://local${abs}?t=${Date.now()}` }
+          attr: { src: resourceUri, alt: beat.title || "Beat thumbnail" }
         });
         thumb.addEventListener("click", () => window.open(`file://${abs}`));
       }
@@ -9713,7 +9775,15 @@ var StoryboardView = class extends import_obsidian7.ItemView {
         text: "\u{1F9E0} Refine"
       });
       btnItemRefine.addEventListener("click", () => {
-        const shoot = this.configLookup.getShoot(beat.shoot || beat.preset || this.settings.activeShoot);
+        let shoot;
+        if (beat.shoot) {
+          shoot = this.configLookup.getShoot(beat.shoot);
+        } else if (beat.preset) {
+          shoot = this.configLookup.getShoot(beat.preset);
+        }
+        if (!shoot) {
+          shoot = this.configLookup.getShoot(this.settings.activeShoot) || this.configLookup.getDefaultShoot();
+        }
         new PromptRefineModal(
           this.app,
           beat,
@@ -9747,7 +9817,7 @@ var StoryboardView = class extends import_obsidian7.ItemView {
       file = this.currentFile || this.app.workspace.getActiveFile();
     }
     if (!file) {
-      new import_obsidian7.Notice("Please select a scene note first.");
+      new import_obsidian8.Notice("Please select a scene note first.");
       return;
     }
     let origText = "";
@@ -9756,7 +9826,7 @@ var StoryboardView = class extends import_obsidian7.ItemView {
       buttonEl.disabled = true;
       buttonEl.innerText = "\u23F3 Crafting Beats with AI...";
     }
-    new import_obsidian7.Notice("\u{1F916} Analyzing scene text & extracting visual beats with AI...");
+    new import_obsidian8.Notice("\u{1F916} Analyzing scene text & extracting visual beats with AI...");
     try {
       const sceneText = content || await this.app.vault.read(file);
       const { systemPrompt, userPrompt } = buildBeatExtractionPrompt(
@@ -9769,7 +9839,7 @@ var StoryboardView = class extends import_obsidian7.ItemView {
       const response = await this.llmClient.generateCompletion(systemPrompt, userPrompt);
       const parsed = parseBeatsResponse(response, file.basename);
       if (parsed.beats.length === 0) {
-        new import_obsidian7.Notice("No beats were returned by AI.");
+        new import_obsidian8.Notice("No beats were returned by AI.");
         return;
       }
       new BeatReviewModal(
@@ -9782,7 +9852,7 @@ var StoryboardView = class extends import_obsidian7.ItemView {
         this.settings
       ).open();
     } catch (err) {
-      new import_obsidian7.Notice(`\u274C AI Beat Extraction failed: ${err.message}`, 8e3);
+      new import_obsidian8.Notice(`\u274C AI Beat Extraction failed: ${err.message}`, 8e3);
       console.error("AI Beat Extraction error:", err);
     } finally {
       if (buttonEl) {
@@ -9796,7 +9866,7 @@ var StoryboardView = class extends import_obsidian7.ItemView {
       file = this.currentFile || this.app.workspace.getActiveFile();
     }
     if (!file) {
-      new import_obsidian7.Notice("Please select an active note first.");
+      new import_obsidian8.Notice("Please select an active note first.");
       return;
     }
     const template = `
@@ -9827,10 +9897,10 @@ prompt: "Key scene beat description here..."
         const content = await this.app.vault.read(file);
         await this.app.vault.modify(file, content + template);
       }
-      new import_obsidian7.Notice(`Inserted plotbeat template into "${file.basename}"!`);
+      new import_obsidian8.Notice(`Inserted plotbeat template into "${file.basename}"!`);
       await this.refresh();
     } catch (e) {
-      new import_obsidian7.Notice(`Failed to insert template: ${e.message}`);
+      new import_obsidian8.Notice(`Failed to insert template: ${e.message}`);
     }
   }
   extractBeatsFromContent(content, defaultScene) {
@@ -9839,34 +9909,34 @@ prompt: "Key scene beat description here..."
     let match;
     while ((match = plotbeatRegex.exec(content)) !== null) {
       try {
-        const raw = parse(match[1], { uniqueKeys: false }) || {};
-        const beat = raw.beat ?? beats.length + 1;
-        const scene = raw.scene || defaultScene;
-        const title = raw.title || `Beat ${beat}`;
+        const raw2 = parse(match[1], { uniqueKeys: false }) || {};
+        const beat = raw2.beat ?? beats.length + 1;
+        const scene = raw2.scene || defaultScene;
+        const title = raw2.title || `Beat ${beat}`;
         const id = `${scene}-${beat}-${title}`.toLowerCase().replace(/[^a-z0-9_-]/g, "_");
         beats.push({
           id,
           beat,
           title,
           scene,
-          character: raw.character,
-          preset: raw.preset,
-          shoot: raw.shoot || raw.preset,
-          refine: raw.refine,
-          model: raw.model,
-          prompt: raw.prompt || "",
-          negative_prompt: raw.negative_prompt || raw.negative,
-          width: raw.width,
-          height: raw.height,
-          aspect: raw.aspect || raw.ratio,
-          steps: raw.steps,
-          cfg: raw.cfg,
-          seed: raw.seed !== void 0 ? Number(raw.seed) : void 0,
-          image: raw.image,
-          strength: raw.strength,
-          prompt_anchor: raw.prompt_anchor,
-          config_json: raw.config_json,
-          output: raw.output
+          character: raw2.character,
+          preset: raw2.preset,
+          shoot: raw2.shoot || raw2.preset,
+          refine: raw2.refine,
+          model: raw2.model,
+          prompt: raw2.prompt || "",
+          negative_prompt: raw2.negative_prompt || raw2.negative,
+          width: raw2.width,
+          height: raw2.height,
+          aspect: raw2.aspect || raw2.ratio,
+          steps: raw2.steps,
+          cfg: raw2.cfg,
+          seed: raw2.seed !== void 0 ? Number(raw2.seed) : void 0,
+          image: raw2.image,
+          strength: raw2.strength,
+          prompt_anchor: raw2.prompt_anchor,
+          config_json: raw2.config_json,
+          output: raw2.output
         });
       } catch (e) {
       }
@@ -9874,14 +9944,14 @@ prompt: "Key scene beat description here..."
     const sceneScriptRegex = /```scene-script\s*\n([\s\S]*?)\n```/g;
     while ((match = sceneScriptRegex.exec(content)) !== null) {
       try {
-        const raw = parse(match[1], { uniqueKeys: false }) || {};
-        const scene = raw.scene || defaultScene;
-        const preset = raw.preset;
-        const shoot = raw.shoot || raw.preset;
-        const refine = raw.refine;
-        const model = raw.model || this.settings.defaultModel;
-        const seedStart = raw.seed_start !== void 0 ? Number(raw.seed_start) : void 0;
-        const rawBeats = Array.isArray(raw.beats) ? raw.beats : [];
+        const raw2 = parse(match[1], { uniqueKeys: false }) || {};
+        const scene = raw2.scene || defaultScene;
+        const preset = raw2.preset;
+        const shoot = raw2.shoot || raw2.preset;
+        const refine = raw2.refine;
+        const model = raw2.model || this.settings.defaultModel;
+        const seedStart = raw2.seed_start !== void 0 ? Number(raw2.seed_start) : void 0;
+        const rawBeats = Array.isArray(raw2.beats) ? raw2.beats : [];
         rawBeats.forEach((b, idx) => {
           const beatNum = b.beat !== void 0 ? b.beat : idx + 1;
           const title = b.title || `Beat ${beatNum}`;
@@ -9899,17 +9969,17 @@ prompt: "Key scene beat description here..."
             refine: b.refine !== void 0 ? b.refine : refine,
             model: b.model || model,
             prompt: b.prompt || "",
-            negative_prompt: b.negative_prompt || b.negative || raw.negative_prompt || raw.negative,
-            width: b.width || raw.width,
-            height: b.height || raw.height,
-            aspect: b.aspect || raw.aspect,
-            steps: b.steps || raw.steps,
-            cfg: b.cfg || raw.cfg,
+            negative_prompt: b.negative_prompt || b.negative || raw2.negative_prompt || raw2.negative,
+            width: b.width || raw2.width,
+            height: b.height || raw2.height,
+            aspect: b.aspect || raw2.aspect,
+            steps: b.steps || raw2.steps,
+            cfg: b.cfg || raw2.cfg,
             seed: seed !== void 0 ? Number(seed) : void 0,
             image: b.image,
             strength: b.strength,
-            prompt_anchor: b.prompt_anchor || raw.prompt_anchor,
-            config_json: b.config_json || raw.config_json,
+            prompt_anchor: b.prompt_anchor || raw2.prompt_anchor,
+            config_json: b.config_json || raw2.config_json,
             output: b.output
           });
         });
@@ -9932,7 +10002,7 @@ prompt: "Key scene beat description here..."
     if (shouldRefine) {
       const mode = (typeof beat.refine === "string" ? beat.refine : null) || shoot?.refine_mode || this.settings.promptRefineMode || "unified";
       try {
-        new import_obsidian7.Notice(`\u{1F9E0} Refining Beat ${beat.beat} prompt with ${mode.toUpperCase()} AI...`);
+        new import_obsidian8.Notice(`\u{1F9E0} Refining Beat ${beat.beat} prompt with ${mode.toUpperCase()} AI...`);
         effectivePrompt = await this.promptRefiner.refine(effectivePrompt, {
           mode,
           promptAnchor: beat.prompt_anchor || shoot?.prompt_anchor,
@@ -9957,7 +10027,7 @@ prompt: "Key scene beat description here..."
 };
 
 // src/llmClient.ts
-var import_obsidian8 = require("obsidian");
+var import_obsidian9 = require("obsidian");
 var LLMClient = class {
   app;
   settings;
@@ -10078,7 +10148,7 @@ var LLMClient = class {
       headers,
       body: JSON.stringify(payload)
     };
-    const res = await (0, import_obsidian8.requestUrl)(req);
+    const res = await (0, import_obsidian9.requestUrl)(req);
     const data = res.json;
     if (data?.choices && data.choices.length > 0) {
       const msg = data.choices[0].message;
@@ -10098,8 +10168,8 @@ var LLMClient = class {
       try {
         const dataPath = ".obsidian/plugins/smart-composer/data.json";
         if (await this.app.vault.adapter.exists(dataPath)) {
-          const raw = await this.app.vault.adapter.read(dataPath);
-          scSettings = JSON.parse(raw);
+          const raw2 = await this.app.vault.adapter.read(dataPath);
+          scSettings = JSON.parse(raw2);
         }
       } catch (e) {
         console.error("[DrawThings] Failed to read smart-composer data.json:", e);
@@ -10158,7 +10228,7 @@ var LLMClient = class {
       body: JSON.stringify(payload)
     };
     try {
-      const res = await (0, import_obsidian8.requestUrl)(req);
+      const res = await (0, import_obsidian9.requestUrl)(req);
       const data = res.json;
       if (data?.message?.content) {
         return data.message.content;
@@ -10200,7 +10270,7 @@ var LLMClient = class {
       headers,
       body: JSON.stringify(payload)
     };
-    const res = await (0, import_obsidian8.requestUrl)(req);
+    const res = await (0, import_obsidian9.requestUrl)(req);
     const data = res.json;
     if (data?.choices && data.choices.length > 0) {
       const msg = data.choices[0].message;
@@ -10241,7 +10311,7 @@ var LLMClient = class {
       headers,
       body: JSON.stringify(payload)
     };
-    const res = await (0, import_obsidian8.requestUrl)(req);
+    const res = await (0, import_obsidian9.requestUrl)(req);
     const data = res.json;
     if (data?.content && Array.isArray(data.content) && data.content.length > 0) {
       return data.content.map((c) => c.text || "").join("\n");
@@ -10273,7 +10343,7 @@ var LLMClient = class {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     };
-    const res = await (0, import_obsidian8.requestUrl)(req);
+    const res = await (0, import_obsidian9.requestUrl)(req);
     const data = res.json;
     if (data?.candidates && data.candidates.length > 0 && data.candidates[0].content?.parts) {
       return data.candidates[0].content.parts.map((p) => p.text || "").join("\n");
@@ -10287,7 +10357,7 @@ var LLMClient = class {
 
 // src/configLookup.ts
 var fs5 = __toESM(require("fs"));
-var path6 = __toESM(require("path"));
+var path7 = __toESM(require("path"));
 var os2 = __toESM(require("os"));
 var BUILTIN_SHOOTS = [
   {
@@ -10448,7 +10518,7 @@ var ConfigLookup = class {
       const expanded = this.expandHome(customDir.trim());
       if (fs5.existsSync(expanded)) return expanded;
     }
-    const appModelsDir = path6.join(
+    const appModelsDir = path7.join(
       os2.homedir(),
       "Library",
       "Containers",
@@ -10464,7 +10534,7 @@ var ConfigLookup = class {
   }
   expandHome(filepath) {
     if (filepath.startsWith("~/") || filepath === "~") {
-      return path6.join(os2.homedir(), filepath.slice(1));
+      return path7.join(os2.homedir(), filepath.slice(1));
     }
     return filepath;
   }
@@ -10490,11 +10560,11 @@ var ConfigLookup = class {
   }
   loadCustomLoraMetadata() {
     this.loraVersionMap.clear();
-    const loraJsonPath = path6.join(this.modelsDir, "custom_lora.json");
+    const loraJsonPath = path7.join(this.modelsDir, "custom_lora.json");
     if (fs5.existsSync(loraJsonPath)) {
       try {
-        const raw = fs5.readFileSync(loraJsonPath, "utf8");
-        const items = JSON.parse(raw);
+        const raw2 = fs5.readFileSync(loraJsonPath, "utf8");
+        const items = JSON.parse(raw2);
         if (Array.isArray(items)) {
           for (const item of items) {
             if (item.file && item.version) {
@@ -10532,11 +10602,11 @@ var ConfigLookup = class {
     if (!loraFilename || loraFilename.toLowerCase() === "none") {
       return { model: modelFilename, lora: "none", version: "" };
     }
-    let resolvedLora = path6.basename(loraFilename);
+    let resolvedLora = path7.basename(loraFilename);
     if (resolvedLora === "mystic_z_lora_f16.ckpt") {
       resolvedLora = "mystic__lora_f16.ckpt";
     }
-    const physicalPath = path6.join(this.modelsDir, resolvedLora);
+    const physicalPath = path7.join(this.modelsDir, resolvedLora);
     if (!fs5.existsSync(physicalPath)) {
       console.warn(`[ConfigLookup] LoRA '${resolvedLora}' not found in ${this.modelsDir}. Disabling LoRA to prevent CLI error.`);
       return { model: modelFilename, lora: "none", version: "" };
@@ -10572,15 +10642,15 @@ var ConfigLookup = class {
     return { model: modelFilename, lora: resolvedLora, version: loraVer };
   }
   loadDrawThingsAppConfigs() {
-    const customConfigsPath = path6.join(this.modelsDir, "custom_configs.json");
-    const cachePath = path6.join(os2.homedir(), ".config", "drawthings-alfred", "custom_configs_cache.json");
+    const customConfigsPath = path7.join(this.modelsDir, "custom_configs.json");
+    const cachePath = path7.join(os2.homedir(), ".config", "drawthings-alfred", "custom_configs_cache.json");
     let configs = [];
     if (fs5.existsSync(customConfigsPath)) {
       try {
-        const raw = fs5.readFileSync(customConfigsPath, "utf8");
-        configs = JSON.parse(raw);
+        const raw2 = fs5.readFileSync(customConfigsPath, "utf8");
+        configs = JSON.parse(raw2);
         try {
-          const cacheDir = path6.dirname(cachePath);
+          const cacheDir = path7.dirname(cachePath);
           if (!fs5.existsSync(cacheDir)) fs5.mkdirSync(cacheDir, { recursive: true });
           fs5.writeFileSync(cachePath, JSON.stringify(configs, null, 2), "utf8");
         } catch (e) {
@@ -10591,8 +10661,8 @@ var ConfigLookup = class {
     }
     if ((!configs || configs.length === 0) && fs5.existsSync(cachePath)) {
       try {
-        const raw = fs5.readFileSync(cachePath, "utf8");
-        configs = JSON.parse(raw);
+        const raw2 = fs5.readFileSync(cachePath, "utf8");
+        configs = JSON.parse(raw2);
       } catch (e) {
       }
     }
@@ -10611,9 +10681,9 @@ var ConfigLookup = class {
       const rawLoras = Array.isArray(cfg.loras) ? cfg.loras : [];
       const validLoras = [];
       for (const l of rawLoras) {
-        const lFile = path6.basename(l.file || "");
+        const lFile = path7.basename(l.file || "");
         if (!lFile) continue;
-        const exists = fs5.existsSync(path6.join(this.modelsDir, lFile));
+        const exists = fs5.existsSync(path7.join(this.modelsDir, lFile));
         if (exists) {
           const lWeight = parseFloat(l.weight ?? 1);
           const lVer = this.findLoraVersion(lFile, model);
@@ -10657,11 +10727,11 @@ var ConfigLookup = class {
     return appShoots;
   }
   loadAlfredCustomShoots() {
-    const shootsFile = path6.join(os2.homedir(), ".config", "drawthings-alfred", "shoots.json");
+    const shootsFile = path7.join(os2.homedir(), ".config", "drawthings-alfred", "shoots.json");
     if (!fs5.existsSync(shootsFile)) return [];
     try {
-      const raw = fs5.readFileSync(shootsFile, "utf8");
-      const list = JSON.parse(raw);
+      const raw2 = fs5.readFileSync(shootsFile, "utf8");
+      const list = JSON.parse(raw2);
       if (Array.isArray(list)) {
         return list.map((s) => ({
           ...s,
@@ -10676,9 +10746,12 @@ var ConfigLookup = class {
   getAllShoots() {
     return this.allShoots;
   }
+  getDefaultShoot() {
+    return this.allShoots[0] || BUILTIN_SHOOTS[0];
+  }
   getShoot(idOrName) {
     if (!idOrName || !idOrName.trim()) {
-      return this.allShoots[0] || BUILTIN_SHOOTS[0];
+      return void 0;
     }
     const clean = idOrName.trim().toLowerCase();
     for (const s of this.allShoots) {
@@ -10692,20 +10765,22 @@ var ConfigLookup = class {
         return s;
       }
     }
-    for (const s of this.allShoots) {
-      if (s.id.toLowerCase().includes(clean) || s.name.toLowerCase().includes(clean)) {
-        return s;
+    if (clean.length >= 3) {
+      for (const s of this.allShoots) {
+        if (s.id.toLowerCase().includes(clean) || s.name.toLowerCase().includes(clean)) {
+          return s;
+        }
       }
     }
-    return this.allShoots[0] || BUILTIN_SHOOTS[0];
+    return void 0;
   }
   buildConfigJson(shoot, extraOverrides) {
     const loraConfig = {};
     if (shoot.loras && Array.isArray(shoot.loras) && shoot.loras.length > 0) {
       const validList = [];
       for (const l of shoot.loras) {
-        const safeFile = path6.basename(l.file || "");
-        if (safeFile && fs5.existsSync(path6.join(this.modelsDir, safeFile))) {
+        const safeFile = path7.basename(l.file || "");
+        if (safeFile && fs5.existsSync(path7.join(this.modelsDir, safeFile))) {
           validList.push({
             file: safeFile,
             weight: Number(l.weight ?? 1),
@@ -10882,7 +10957,7 @@ var PromptRefiner = class {
 };
 
 // src/main.ts
-var DrawThingsPlugin = class extends import_obsidian9.Plugin {
+var DrawThingsPlugin = class extends import_obsidian10.Plugin {
   settings = DEFAULT_SETTINGS;
   queue;
   charResolver;
@@ -10951,14 +11026,14 @@ var DrawThingsPlugin = class extends import_obsidian9.Plugin {
       id: "auto-script-scene-beats",
       name: "Auto-Script Scene Beats with AI (Active Note)",
       callback: async () => {
-        const view = this.app.workspace.getActiveViewOfType(import_obsidian9.MarkdownView);
+        const view = this.app.workspace.getActiveViewOfType(import_obsidian10.MarkdownView);
         if (!view || !view.file) {
-          new import_obsidian9.Notice("Please open a scene note first.");
+          new import_obsidian10.Notice("Please open a scene note first.");
           return;
         }
         const file = view.file;
         const content = await this.app.vault.read(file);
-        new import_obsidian9.Notice("\u{1F916} Analyzing scene text & extracting visual beats with AI...");
+        new import_obsidian10.Notice("\u{1F916} Analyzing scene text & extracting visual beats with AI...");
         try {
           const { systemPrompt, userPrompt } = buildBeatExtractionPrompt(
             file.basename,
@@ -10970,7 +11045,7 @@ var DrawThingsPlugin = class extends import_obsidian9.Plugin {
           const response = await this.llmClient.generateCompletion(systemPrompt, userPrompt);
           const parsed = parseBeatsResponse(response, file.basename);
           if (parsed.beats.length === 0) {
-            new import_obsidian9.Notice("No beats returned by AI.");
+            new import_obsidian10.Notice("No beats returned by AI.");
             return;
           }
           new BeatReviewModal(
@@ -10983,7 +11058,7 @@ var DrawThingsPlugin = class extends import_obsidian9.Plugin {
             this.settings
           ).open();
         } catch (err) {
-          new import_obsidian9.Notice(`\u274C AI Beat Extraction failed: ${err.message}`);
+          new import_obsidian10.Notice(`\u274C AI Beat Extraction failed: ${err.message}`);
           console.error(err);
         }
       }
@@ -10994,10 +11069,10 @@ var DrawThingsPlugin = class extends import_obsidian9.Plugin {
       editorCallback: async (editor, view) => {
         const selected = editor.getSelection();
         if (!selected || selected.trim().length === 0) {
-          new import_obsidian9.Notice("Please select scene prose in the editor first.");
+          new import_obsidian10.Notice("Please select scene prose in the editor first.");
           return;
         }
-        new import_obsidian9.Notice("\u{1F916} Crafting visual prompt from selected text...");
+        new import_obsidian10.Notice("\u{1F916} Crafting visual prompt from selected text...");
         try {
           const { systemPrompt, userPrompt } = buildBeatExtractionPrompt(
             view.file?.basename || "Scene",
@@ -11023,10 +11098,10 @@ prompt: "${beat.prompt.replace(/"/g, '\\"')}"
 \`\`\`
 `;
             editor.replaceSelection(selected + "\n" + block);
-            new import_obsidian9.Notice("Inserted plotbeat block!");
+            new import_obsidian10.Notice("Inserted plotbeat block!");
           }
         } catch (err) {
-          new import_obsidian9.Notice(`\u274C AI Beat generation failed: ${err.message}`);
+          new import_obsidian10.Notice(`\u274C AI Beat generation failed: ${err.message}`);
         }
       }
     });
@@ -11085,29 +11160,28 @@ beats:
       callback: () => {
         this.configLookup.reloadConfigs();
         const count = this.configLookup.getAllShoots().length;
-        new import_obsidian9.Notice(`Scanned Draw Things container: found ${count} configurations.`);
+        new import_obsidian10.Notice(`Scanned Draw Things container: found ${count} configurations.`);
       }
     });
     this.addCommand({
       id: "refine-active-beat-prompt",
       name: "Refine Beat Prompts in Active Note (Visionary / ENI Bible)",
       callback: async () => {
-        const view = this.app.workspace.getActiveViewOfType(import_obsidian9.MarkdownView);
+        const view = this.app.workspace.getActiveViewOfType(import_obsidian10.MarkdownView);
         if (!view || !view.file) {
-          new import_obsidian9.Notice("Please open a note with plot beats first.");
+          new import_obsidian10.Notice("Please open a note with plot beats first.");
           return;
         }
         const file = view.file;
         const content = await this.app.vault.read(file);
         const match = /```plotbeat\s*\n([\s\S]*?)\n```/.exec(content);
         if (!match) {
-          new import_obsidian9.Notice("No ```plotbeat block found in active note.");
+          new import_obsidian10.Notice("No ```plotbeat block found in active note.");
           return;
         }
         try {
           const yaml = await Promise.resolve().then(() => (init_browser(), browser_exports));
-          const raw = yaml.parse(match[1], { uniqueKeys: false }) || {};
-          const shoot = this.configLookup.getShoot(raw.shoot || raw.preset || this.settings.activeShoot);
+          const shoot = (raw.shoot ? this.configLookup.getShoot(raw.shoot) : void 0) || (raw.preset ? this.configLookup.getShoot(raw.preset) : void 0) || this.configLookup.getShoot(this.settings.activeShoot) || this.configLookup.getDefaultShoot();
           new PromptRefineModal(
             this.app,
             {
@@ -11139,7 +11213,7 @@ beats:
             this.configLookup
           ).open();
         } catch (e) {
-          new import_obsidian9.Notice(`Failed to parse beat: ${e.message}`);
+          new import_obsidian10.Notice(`Failed to parse beat: ${e.message}`);
         }
       }
     });

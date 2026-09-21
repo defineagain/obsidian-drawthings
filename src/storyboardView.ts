@@ -13,6 +13,7 @@ import { ConfigLookup } from "./configLookup";
 import { PromptRefiner } from "./promptRefiner";
 import { PromptRefineModal } from "./refineModal";
 import { buildGenerationJob } from "./jobBuilder";
+import { resolveImageResourceUri } from "./imageResolver";
 
 export const STORYBOARD_VIEW_TYPE = "drawthings-storyboard-view";
 
@@ -107,7 +108,7 @@ export class StoryboardView extends ItemView {
 
     const header = root.createDiv({ cls: "drawthings-sidebar-header" });
     header.createEl("h4", { cls: "drawthings-sidebar-title", text: `🎬 ${file.basename}` });
-    const activeShoot = this.configLookup.getShoot(this.settings.activeShoot);
+    const activeShoot = this.configLookup.getShoot(this.settings.activeShoot) || this.configLookup.getDefaultShoot();
     if (activeShoot) {
       header.createSpan({ cls: "drawthings-badge shoot-badge", text: `Active: ${activeShoot.name}` });
     }
@@ -178,8 +179,9 @@ export class StoryboardView extends ItemView {
 
       if (exists) {
         const thumb = item.createDiv({ cls: "drawthings-sidebar-thumb" });
+        const resourceUri = resolveImageResourceUri(this.app, abs, rel);
         thumb.createEl("img", {
-          attr: { src: `app://local${abs}?t=${Date.now()}` }
+          attr: { src: resourceUri, alt: beat.title || "Beat thumbnail" }
         });
         thumb.addEventListener("click", () => window.open(`file://${abs}`));
       }
@@ -198,7 +200,15 @@ export class StoryboardView extends ItemView {
       });
 
       btnItemRefine.addEventListener("click", () => {
-        const shoot = this.configLookup.getShoot(beat.shoot || beat.preset || this.settings.activeShoot);
+        let shoot: ShootConfig | undefined;
+        if (beat.shoot) {
+          shoot = this.configLookup.getShoot(beat.shoot);
+        } else if (beat.preset) {
+          shoot = this.configLookup.getShoot(beat.preset);
+        }
+        if (!shoot) {
+          shoot = this.configLookup.getShoot(this.settings.activeShoot) || this.configLookup.getDefaultShoot();
+        }
         new PromptRefineModal(
           this.app,
           beat,

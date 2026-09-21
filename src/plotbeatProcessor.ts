@@ -10,6 +10,7 @@ import { ConfigLookup } from "./configLookup";
 import { PromptRefiner } from "./promptRefiner";
 import { PromptRefineModal } from "./refineModal";
 import { buildGenerationJob } from "./jobBuilder";
+import { resolveImageResourceUri } from "./imageResolver";
 
 export class PlotbeatProcessor {
   private app: App;
@@ -141,8 +142,15 @@ export class PlotbeatProcessor {
   private renderCard(container: HTMLElement, beat: PlotBeatData, ctx: MarkdownPostProcessorContext): void {
     const card = container.createDiv({ cls: "drawthings-beat-card" });
 
-    const shootQuery = beat.shoot || beat.preset || this.settings.activeShoot;
-    const shoot = this.configLookup.getShoot(shootQuery);
+    let shoot: ShootConfig | undefined;
+    if (beat.shoot) {
+      shoot = this.configLookup.getShoot(beat.shoot);
+    } else if (beat.preset) {
+      shoot = this.configLookup.getShoot(beat.preset);
+    }
+
+    const presetKey = beat.preset || "";
+    const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
 
     // Header
     const header = card.createDiv({ cls: "drawthings-card-header" });
@@ -160,7 +168,8 @@ export class PlotbeatProcessor {
     if (shoot) {
       headerRight.createSpan({ cls: "drawthings-badge shoot-badge", text: `🎬 ${shoot.name}` });
     } else if (beat.preset) {
-      headerRight.createSpan({ cls: "drawthings-badge preset-badge", text: `🎨 ${beat.preset}` });
+      const pName = preset?.name || beat.preset;
+      headerRight.createSpan({ cls: "drawthings-badge preset-badge", text: `🎨 ${pName}` });
     }
     const statusBadge = headerRight.createSpan({ cls: "drawthings-badge status-badge status-idle", text: "Idle" });
 
@@ -235,7 +244,7 @@ export class PlotbeatProcessor {
         btnGenerate.setText("🔄 Regenerate");
 
         // Convert path to Obsidian-safe URI
-        const resourceUri = `app://local${absOutputPath}?t=${Date.now()}`;
+        const resourceUri = resolveImageResourceUri(this.app, absOutputPath, relOutputPath);
         const img = imgContainer.createEl("img", {
           cls: "drawthings-preview-img",
           attr: { src: resourceUri, alt: beat.title || "Plot Beat Plate" }
