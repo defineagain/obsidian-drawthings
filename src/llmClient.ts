@@ -1,5 +1,11 @@
 import { App, requestUrl, RequestUrlParam } from "obsidian";
-import { DrawThingsSettings } from "./types";
+import { DrawThingsSettings, LLMProvider } from "./types";
+
+export interface LLMCompletionOptions {
+  providerOverride?: LLMProvider;
+  modelOverride?: string;
+  endpointOverride?: string;
+}
 
 export class LLMClient {
   private app: App;
@@ -14,11 +20,55 @@ export class LLMClient {
     this.settings = settings;
   }
 
-  async testConnection(): Promise<{ success: boolean; message: string }> {
+  /**
+   * Sanitizes and normalizes OpenRouter endpoint URLs, repairing accidental paste
+   * duplications like "https://openrouter.ai/api/v1https://openrouter.ai/api/v1/chat/completions"
+   * or missing "/chat/completions" path.
+   */
+  cleanOpenRouterEndpoint(rawUrl?: string): string {
+    let url = (rawUrl || "").trim();
+    if (!url) return "https://openrouter.ai/api/v1/chat/completions";
+
+    // If multiple "https://" or "http://" appear, extract the last occurrence onwards
+    const lastHttp = url.lastIndexOf("http://");
+    const lastHttps = url.lastIndexOf("https://");
+    const lastIdx = Math.max(lastHttp, lastHttps);
+    if (lastIdx > 0) {
+      url = url.slice(lastIdx);
+    }
+
+    // Ensure it terminates with /chat/completions
+    if (url.endsWith("/api/v1") || url.endsWith("/api/v1/")) {
+      url = url.replace(/\/+$/, "") + "/chat/completions";
+    }
+
+    return url;
+  }
+
+  /**
+   * Automatically discovers an active OpenRouter API key from Smart Composer if present.
+   */
+  detectSmartComposerOpenRouterKey(): string {
+    try {
+      const scSettings: any = (this.app as any).plugins?.plugins?.["smart-composer"]?.settings;
+      if (scSettings && Array.isArray(scSettings.providers)) {
+        const found = scSettings.providers.find(
+          (p: any) => (p.type === "openrouter" || p.id === "openrouter") && p.apiKey
+        );
+        if (found?.apiKey) return found.apiKey.trim();
+      }
+    } catch (e) {
+      console.warn("[DrawThings] Failed to inspect Smart Composer in-memory settings:", e);
+    }
+    return "";
+  }
+
+  async testConnection(providerOverride?: LLMProvider): Promise<{ success: boolean; message: string }> {
     try {
       const response = await this.generateCompletion(
         "You are an assistant.",
-        "Respond with the single word 'READY' and nothing else."
+        "Respond with the single word 'READY' and nothing else.",
+        { providerOverride }
       );
       if (response && response.trim().length > 0) {
         return { success: true, message: `Connected! Response: "${response.trim().slice(0, 60)}"` };
@@ -29,10 +79,21 @@ export class LLMClient {
     }
   }
 
-  async generateCompletion(systemPrompt: string, userPrompt: string): Promise<string> {
-    const provider = this.settings.llmProvider;
+  async generateCompletion(
+    systemPrompt: string,
+    userPrompt: string,
+    options?: LLMCompletionOptions
+  ): Promise<string> {
+    const provider = options?.providerOverride || this.settings.llmProvider;
 
     switch (provider) {
+      case "openrouter":
+        return this.callOpenRouter(
+          systemPrompt,
+          userPrompt,
+          options?.modelOverride,
+          options?.endpointOverride
+        );
       case "smart-composer":
         return this.callSmartComposerBridge(systemPrompt, userPrompt);
       case "ollama":
@@ -48,6 +109,70 @@ export class LLMClient {
       default:
         return this.callOpenAICompatible(systemPrompt, userPrompt);
     }
+  }
+
+  async callOpenRouter(
+    systemPrompt: string,
+    userPrompt: string,
+    modelOverride?: string,
+    endpointOverride?: string
+  ): Promise<string> {
+    const rawEndpoint = endpointOverride || this.settings.llmEndpoint || "https://openrouter.ai/api/v1/chat/completions";
+    const endpoint = this.cleanOpenRouterEndpoint(rawEndpoint);
+    const model =
+      modelOverride ||
+      (this.settings.llmModel && this.settings.llmModel !== "llama3" && this.settings.llmModel !== "default"
+        ? this.settings.llmModel
+        : "@preset/glm-5-3-writer");
+
+    // Key lookup: Settings API Key -> Smart Composer Key
+    let apiKey = this.settings.llmApiKey ? this.settings.llmApiKey.trim() : "";
+    if (!apiKey) {
+      apiKey = this.detectSmartComposerOpenRouterKey();
+    }
+
+    if (!apiKey) {
+      throw new Error(
+        "OpenRouter API key missing. Please enter your OpenRouter key (sk-or-...) in Draw Things settings or configure Smart Composer."
+      );
+    }
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://obsidian.md",
+      "X-Title": "Obsidian Draw Things Novel Scene Illustrator"
+    };
+
+    const payload = {
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.7
+    };
+
+    const req: RequestUrlParam = {
+      url: endpoint,
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload)
+    };
+
+    const res = await requestUrl(req);
+    const data = res.json;
+    if (data?.choices && data.choices.length > 0) {
+      const msg = data.choices[0].message;
+      const content = msg?.content || msg?.reasoning;
+      if (content && typeof content === "string") {
+        return content;
+      }
+    }
+    if (data?.error?.message) {
+      throw new Error(`OpenRouter Error (${model}): ${data.error.message}`);
+    }
+    throw new Error(`Unexpected OpenRouter response structure: ${JSON.stringify(data).slice(0, 120)}`);
   }
 
   private async callSmartComposerBridge(systemPrompt: string, userPrompt: string): Promise<string> {
@@ -75,18 +200,9 @@ export class LLMClient {
       const gemini = providers.find((p: any) => (p.type === "gemini" || p.id === "gemini") && p.apiKey);
       const ollama = providers.find((p: any) => (p.type === "ollama" || p.id === "ollama"));
 
-      // Priority A: OpenRouter key in Smart Composer (User has an active OpenRouter key!)
+      // Priority A: OpenRouter key in Smart Composer
       if (openrouter?.apiKey) {
-        const model = this.settings.llmModel && this.settings.llmModel !== "llama3"
-          ? this.settings.llmModel
-          : "anthropic/claude-sonnet-5";
-        return this.callOpenAIFormat(
-          "https://openrouter.ai/api/v1/chat/completions",
-          openrouter.apiKey,
-          model,
-          systemPrompt,
-          userPrompt
-        );
+        return this.callOpenRouter(systemPrompt, userPrompt, this.settings.llmModel || "@preset/glm-5-3-writer");
       }
 
       // Priority B: Direct Anthropic key in Smart Composer
@@ -114,13 +230,7 @@ export class LLMClient {
     // Fallback: If user supplied API key in Draw Things settings directly
     if (this.settings.llmApiKey && this.settings.llmApiKey.trim().length > 0) {
       if (this.settings.llmApiKey.startsWith("sk-or-")) {
-        return this.callOpenAIFormat(
-          "https://openrouter.ai/api/v1/chat/completions",
-          this.settings.llmApiKey,
-          "anthropic/claude-sonnet-5",
-          systemPrompt,
-          userPrompt
-        );
+        return this.callOpenRouter(systemPrompt, userPrompt);
       }
       return this.callOpenAICompatible(systemPrompt, userPrompt);
     }
@@ -135,7 +245,12 @@ export class LLMClient {
     return this.callOllamaWithEndpoint(endpoint, model, systemPrompt, userPrompt);
   }
 
-  private async callOllamaWithEndpoint(endpoint: string, model: string, systemPrompt: string, userPrompt: string): Promise<string> {
+  private async callOllamaWithEndpoint(
+    endpoint: string,
+    model: string,
+    systemPrompt: string,
+    userPrompt: string
+  ): Promise<string> {
     const payload = {
       model,
       messages: [
@@ -231,7 +346,12 @@ export class LLMClient {
     return this.callAnthropicDirect(apiKey, model, systemPrompt, userPrompt);
   }
 
-  private async callAnthropicDirect(apiKey: string, model: string, systemPrompt: string, userPrompt: string): Promise<string> {
+  private async callAnthropicDirect(
+    apiKey: string,
+    model: string,
+    systemPrompt: string,
+    userPrompt: string
+  ): Promise<string> {
     const endpoint = "https://api.anthropic.com/v1/messages";
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -273,7 +393,12 @@ export class LLMClient {
     return this.callGeminiDirect(apiKey, model, systemPrompt, userPrompt);
   }
 
-  private async callGeminiDirect(apiKey: string, model: string, systemPrompt: string, userPrompt: string): Promise<string> {
+  private async callGeminiDirect(
+    apiKey: string,
+    model: string,
+    systemPrompt: string,
+    userPrompt: string
+  ): Promise<string> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
 
     const payload = {

@@ -23,10 +23,10 @@ export const DEFAULT_SETTINGS: DrawThingsSettings = {
   autoRefine: false,
 
   // LLM settings
-  llmProvider: "smart-composer",
-  llmEndpoint: "http://127.0.0.1:11434/api/chat",
+  llmProvider: "openrouter",
+  llmEndpoint: "https://openrouter.ai/api/v1/chat/completions",
   llmApiKey: "",
-  llmModel: "llama3",
+  llmModel: "@preset/glm-5-3-writer",
   targetBeatCount: 4,
   customSystemPrompt: ""
 };
@@ -69,6 +69,7 @@ export class DrawThingsSettingTab extends PluginSettingTab {
       .setDesc("Select which provider to use for analyzing scene text and scripting beats.")
       .addDropdown(dropdown => {
         dropdown
+          .addOption("openrouter", "⚡ OpenRouter (Fast Cloud: @preset/glm-5-3-writer)")
           .addOption("smart-composer", "Smart Composer (Auto-Detect)")
           .addOption("ollama", "Local Ollama (Offline / Free)")
           .addOption("lm-studio", "LM Studio (Local)")
@@ -79,7 +80,10 @@ export class DrawThingsSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.llmProvider)
           .onChange(async (val: LLMProvider) => {
             this.plugin.settings.llmProvider = val;
-            if (val === "ollama") {
+            if (val === "openrouter") {
+              this.plugin.settings.llmEndpoint = "https://openrouter.ai/api/v1/chat/completions";
+              this.plugin.settings.llmModel = "@preset/glm-5-3-writer";
+            } else if (val === "ollama") {
               this.plugin.settings.llmEndpoint = "http://127.0.0.1:11434/api/chat";
               this.plugin.settings.llmModel = "llama3";
             } else if (val === "lm-studio") {
@@ -113,10 +117,14 @@ export class DrawThingsSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("LLM Model Name")
-      .setDesc("Model identifier (e.g. llama3, claude-3-5-sonnet-20241022, gpt-4o, gemini-2.0-flash).")
+      .setDesc(
+        this.plugin.settings.llmProvider === "openrouter"
+          ? "OpenRouter model or preset identifier (e.g. @preset/glm-5-3-writer, anthropic/claude-3.5-sonnet, openai/gpt-4o-mini)."
+          : "Model identifier (e.g. llama3, claude-3-5-sonnet-20241022, gpt-4o, gemini-2.0-flash)."
+      )
       .addText(text =>
         text
-          .setPlaceholder("Model ID")
+          .setPlaceholder(this.plugin.settings.llmProvider === "openrouter" ? "@preset/glm-5-3-writer" : "Model ID")
           .setValue(this.plugin.settings.llmModel)
           .onChange(async val => {
             this.plugin.settings.llmModel = val.trim();
@@ -124,14 +132,19 @@ export class DrawThingsSettingTab extends PluginSettingTab {
           })
       );
 
-    if (this.plugin.settings.llmProvider !== "smart-composer" && this.plugin.settings.llmProvider !== "ollama" && this.plugin.settings.llmProvider !== "lm-studio") {
+    if (this.plugin.settings.llmProvider !== "ollama" && this.plugin.settings.llmProvider !== "lm-studio") {
+      const isOR = this.plugin.settings.llmProvider === "openrouter";
       new Setting(containerEl)
-        .setName("API Key")
-        .setDesc("Secret API key for the chosen cloud provider.")
+        .setName(isOR ? "OpenRouter API Key" : "API Key")
+        .setDesc(
+          isOR
+            ? "Your OpenRouter API key (sk-or-v1-...). If left blank, will automatically detect your key from Smart Composer."
+            : "Secret API key for the chosen cloud provider."
+        )
         .addText(text => {
           text.inputEl.type = "password";
           text
-            .setPlaceholder("sk-...")
+            .setPlaceholder(isOR ? "sk-or-v1-..." : "sk-...")
             .setValue(this.plugin.settings.llmApiKey)
             .onChange(async val => {
               this.plugin.settings.llmApiKey = val.trim();
@@ -140,16 +153,33 @@ export class DrawThingsSettingTab extends PluginSettingTab {
         });
     }
 
-    if (this.plugin.settings.llmProvider === "custom" || this.plugin.settings.llmProvider === "ollama" || this.plugin.settings.llmProvider === "lm-studio") {
+    if (
+      this.plugin.settings.llmProvider === "openrouter" ||
+      this.plugin.settings.llmProvider === "custom" ||
+      this.plugin.settings.llmProvider === "ollama" ||
+      this.plugin.settings.llmProvider === "lm-studio"
+    ) {
       new Setting(containerEl)
-        .setName("Custom Endpoint URL")
-        .setDesc("HTTP URL for the API endpoint.")
+        .setName(this.plugin.settings.llmProvider === "openrouter" ? "OpenRouter Endpoint URL" : "Custom Endpoint URL")
+        .setDesc(
+          this.plugin.settings.llmProvider === "openrouter"
+            ? "Default: https://openrouter.ai/api/v1/chat/completions (auto-cleans pasted duplicates)."
+            : "HTTP URL for the API endpoint."
+        )
         .addText(text =>
           text
-            .setPlaceholder("http://127.0.0.1:11434/api/chat")
+            .setPlaceholder(
+              this.plugin.settings.llmProvider === "openrouter"
+                ? "https://openrouter.ai/api/v1/chat/completions"
+                : "http://127.0.0.1:11434/api/chat"
+            )
             .setValue(this.plugin.settings.llmEndpoint)
             .onChange(async val => {
-              this.plugin.settings.llmEndpoint = val.trim();
+              let cleanVal = val.trim();
+              if (this.plugin.settings.llmProvider === "openrouter") {
+                cleanVal = this.plugin.llmClient.cleanOpenRouterEndpoint(cleanVal);
+              }
+              this.plugin.settings.llmEndpoint = cleanVal;
               await this.plugin.saveSettings();
             })
         );

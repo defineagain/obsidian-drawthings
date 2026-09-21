@@ -40,7 +40,7 @@ export interface ShootConfig {
   is_drawthings_app?: boolean;
 }
 
-export type LLMProvider = "smart-composer" | "ollama" | "lm-studio" | "anthropic" | "openai" | "gemini" | "custom";
+export type LLMProvider = "openrouter" | "smart-composer" | "ollama" | "lm-studio" | "anthropic" | "openai" | "gemini" | "custom";
 
 export type PromptRefineMode = "unified" | "visionary" | "eni_bible" | "disabled";
 

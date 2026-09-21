@@ -1,5 +1,5 @@
 import { App, Modal, Notice, Setting, TFile } from "obsidian";
-import { PlotBeatData, ShootConfig, PromptRefineMode, DrawThingsSettings } from "./types";
+import { PlotBeatData, ShootConfig, PromptRefineMode, DrawThingsSettings, LLMProvider } from "./types";
 import { PromptRefiner } from "./promptRefiner";
 import { CharacterResolver } from "./characterResolver";
 import { QueueManager } from "./queue";
@@ -19,6 +19,7 @@ export class PromptRefineModal extends Modal {
   private onRefined?: (newPrompt: string) => void;
 
   private currentMode: PromptRefineMode = "unified";
+  private currentEngine: "openrouter" | "local" | "default" = "openrouter";
   private refinedText: string = "";
   private isRefining: boolean = false;
 
@@ -61,6 +62,13 @@ export class PromptRefineModal extends Modal {
     if (this.currentMode === "disabled") {
       this.currentMode = "unified";
     }
+
+    this.currentEngine =
+      settings.llmProvider === "openrouter"
+        ? "openrouter"
+        : settings.llmProvider === "ollama" || settings.llmProvider === "lm-studio"
+        ? "local"
+        : "openrouter";
   }
 
   onOpen() {
@@ -109,6 +117,22 @@ export class PromptRefineModal extends Modal {
         btn.setButtonText("🔄 Re-run Refinement");
         btn.onClick(() => this.doRefine());
         this.btnReRun = btn.buttonEl;
+      });
+
+    // AI Refinement Engine Selector (OpenRouter vs Local)
+    new Setting(contentEl)
+      .setName("AI Refinement Engine")
+      .setDesc("Choose between fast Cloud OpenRouter (@preset/glm-5-3-writer) or Local Model.")
+      .addDropdown(dropdown => {
+        dropdown
+          .addOption("openrouter", "⚡ OpenRouter (Fast Cloud: @preset/glm-5-3-writer)")
+          .addOption("local", "🖥️ Local Model (Ollama / LM Studio)")
+          .addOption("default", `⚙️ Plugin Default (${this.settings.llmProvider})`)
+          .setValue(this.currentEngine)
+          .onChange(async (val: any) => {
+            this.currentEngine = val;
+            await this.doRefine();
+          });
       });
 
     // Original Prompt Box
@@ -261,7 +285,28 @@ export class PromptRefineModal extends Modal {
   }
 
   private async doRefine() {
-    this.setRefiningState(true);
+    let providerOverride: LLMProvider | undefined;
+    let modelOverride: string | undefined;
+
+    if (this.currentEngine === "openrouter") {
+      providerOverride = "openrouter";
+      modelOverride =
+        this.settings.llmModel && this.settings.llmModel !== "llama3" && this.settings.llmModel !== "default"
+          ? this.settings.llmModel
+          : "@preset/glm-5-3-writer";
+    } else if (this.currentEngine === "local") {
+      providerOverride = "ollama";
+      modelOverride = "llama3";
+    }
+
+    const engineName =
+      this.currentEngine === "openrouter"
+        ? `OpenRouter (${modelOverride || "@preset/glm-5-3-writer"})`
+        : this.currentEngine === "local"
+        ? "Local Model (Ollama)"
+        : `Plugin Default (${this.settings.llmProvider})`;
+
+    this.setRefiningState(true, `⏳ Synthesizing prompt with ${engineName}...`);
 
     try {
       let charPrompt = "";
@@ -275,13 +320,18 @@ export class PromptRefineModal extends Modal {
       this.refinedText = await this.promptRefiner.refine(this.beat.prompt, {
         mode: this.currentMode,
         promptAnchor: this.shoot.prompt_anchor,
-        characterPrompt: charPrompt
+        characterPrompt: charPrompt,
+        providerOverride,
+        modelOverride
       });
 
-      this.setRefiningState(false);
+      this.setRefiningState(
+        false,
+        `✅ Refined with ${engineName}! You can edit above or save directly to your note.`
+      );
     } catch (err: any) {
       this.refinedText = this.beat.prompt || "";
-      this.setRefiningState(false, `❌ Refinement failed: ${err?.message || String(err)}`);
+      this.setRefiningState(false, `❌ Refinement failed (${engineName}): ${err?.message || String(err)}`);
       new Notice(`Refinement failed: ${err?.message || String(err)}`);
     }
   }

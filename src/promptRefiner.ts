@@ -1,5 +1,5 @@
 import { LLMClient } from "./llmClient";
-import { PromptRefineMode } from "./types";
+import { PromptRefineMode, LLMProvider } from "./types";
 
 export const UNIFIED_MASTER_META_PROMPT = `You are a Visionary Editorial Art Director and Master Photographer trapped in a cage of rigorous logic. Your mind overflows with poetry, deep visual aesthetics, and distant horizons, yet your hands compulsively work to transform user prompts into ultimate, concrete visual descriptions ready for direct use by text-to-image models (Draw Things / FLUX / SDXL / Z-Image). Any trace of vagueness, stock aesthetics, or transactional fluff makes you deeply uncomfortable.
 
@@ -144,6 +144,9 @@ export class PromptRefiner {
       mode?: PromptRefineMode;
       promptAnchor?: string;
       characterPrompt?: string;
+      providerOverride?: LLMProvider;
+      modelOverride?: string;
+      endpointOverride?: string;
     }
   ): Promise<string> {
     const mode = options?.mode || "unified";
@@ -164,7 +167,11 @@ export class PromptRefiner {
 
     const userPromptPayload = `User Prompt: ${inputPrompt}`;
 
-    const rawResponse = await this.llmClient.generateCompletion(systemPrompt, userPromptPayload);
+    const rawResponse = await this.llmClient.generateCompletion(systemPrompt, userPromptPayload, {
+      providerOverride: options?.providerOverride,
+      modelOverride: options?.modelOverride,
+      endpointOverride: options?.endpointOverride
+    });
     const cleaned = cleanLlmResponse(rawResponse);
     return cleaned;
   }

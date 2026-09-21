@@ -7337,10 +7337,10 @@ var DEFAULT_SETTINGS = {
   promptRefineMode: "unified",
   autoRefine: false,
   // LLM settings
-  llmProvider: "smart-composer",
-  llmEndpoint: "http://127.0.0.1:11434/api/chat",
+  llmProvider: "openrouter",
+  llmEndpoint: "https://openrouter.ai/api/v1/chat/completions",
   llmApiKey: "",
-  llmModel: "llama3",
+  llmModel: "@preset/glm-5-3-writer",
   targetBeatCount: 4,
   customSystemPrompt: ""
 };
@@ -7370,9 +7370,12 @@ var DrawThingsSettingTab = class extends import_obsidian.PluginSettingTab {
       cls: "setting-item-description"
     });
     new import_obsidian.Setting(containerEl).setName("AI LLM Engine Provider").setDesc("Select which provider to use for analyzing scene text and scripting beats.").addDropdown((dropdown) => {
-      dropdown.addOption("smart-composer", "Smart Composer (Auto-Detect)").addOption("ollama", "Local Ollama (Offline / Free)").addOption("lm-studio", "LM Studio (Local)").addOption("anthropic", "Anthropic Claude (Sonnet / Opus)").addOption("openai", "OpenAI (GPT-4o / GPT-5)").addOption("gemini", "Google Gemini (2.0 Flash / Pro)").addOption("custom", "Custom OpenAI-Compatible Endpoint").setValue(this.plugin.settings.llmProvider).onChange(async (val) => {
+      dropdown.addOption("openrouter", "\u26A1 OpenRouter (Fast Cloud: @preset/glm-5-3-writer)").addOption("smart-composer", "Smart Composer (Auto-Detect)").addOption("ollama", "Local Ollama (Offline / Free)").addOption("lm-studio", "LM Studio (Local)").addOption("anthropic", "Anthropic Claude (Sonnet / Opus)").addOption("openai", "OpenAI (GPT-4o / GPT-5)").addOption("gemini", "Google Gemini (2.0 Flash / Pro)").addOption("custom", "Custom OpenAI-Compatible Endpoint").setValue(this.plugin.settings.llmProvider).onChange(async (val) => {
         this.plugin.settings.llmProvider = val;
-        if (val === "ollama") {
+        if (val === "openrouter") {
+          this.plugin.settings.llmEndpoint = "https://openrouter.ai/api/v1/chat/completions";
+          this.plugin.settings.llmModel = "@preset/glm-5-3-writer";
+        } else if (val === "ollama") {
           this.plugin.settings.llmEndpoint = "http://127.0.0.1:11434/api/chat";
           this.plugin.settings.llmModel = "llama3";
         } else if (val === "lm-studio") {
@@ -7402,25 +7405,38 @@ var DrawThingsSettingTab = class extends import_obsidian.PluginSettingTab {
         }
       })
     );
-    new import_obsidian.Setting(containerEl).setName("LLM Model Name").setDesc("Model identifier (e.g. llama3, claude-3-5-sonnet-20241022, gpt-4o, gemini-2.0-flash).").addText(
-      (text) => text.setPlaceholder("Model ID").setValue(this.plugin.settings.llmModel).onChange(async (val) => {
+    new import_obsidian.Setting(containerEl).setName("LLM Model Name").setDesc(
+      this.plugin.settings.llmProvider === "openrouter" ? "OpenRouter model or preset identifier (e.g. @preset/glm-5-3-writer, anthropic/claude-3.5-sonnet, openai/gpt-4o-mini)." : "Model identifier (e.g. llama3, claude-3-5-sonnet-20241022, gpt-4o, gemini-2.0-flash)."
+    ).addText(
+      (text) => text.setPlaceholder(this.plugin.settings.llmProvider === "openrouter" ? "@preset/glm-5-3-writer" : "Model ID").setValue(this.plugin.settings.llmModel).onChange(async (val) => {
         this.plugin.settings.llmModel = val.trim();
         await this.plugin.saveSettings();
       })
     );
-    if (this.plugin.settings.llmProvider !== "smart-composer" && this.plugin.settings.llmProvider !== "ollama" && this.plugin.settings.llmProvider !== "lm-studio") {
-      new import_obsidian.Setting(containerEl).setName("API Key").setDesc("Secret API key for the chosen cloud provider.").addText((text) => {
+    if (this.plugin.settings.llmProvider !== "ollama" && this.plugin.settings.llmProvider !== "lm-studio") {
+      const isOR = this.plugin.settings.llmProvider === "openrouter";
+      new import_obsidian.Setting(containerEl).setName(isOR ? "OpenRouter API Key" : "API Key").setDesc(
+        isOR ? "Your OpenRouter API key (sk-or-v1-...). If left blank, will automatically detect your key from Smart Composer." : "Secret API key for the chosen cloud provider."
+      ).addText((text) => {
         text.inputEl.type = "password";
-        text.setPlaceholder("sk-...").setValue(this.plugin.settings.llmApiKey).onChange(async (val) => {
+        text.setPlaceholder(isOR ? "sk-or-v1-..." : "sk-...").setValue(this.plugin.settings.llmApiKey).onChange(async (val) => {
           this.plugin.settings.llmApiKey = val.trim();
           await this.plugin.saveSettings();
         });
       });
     }
-    if (this.plugin.settings.llmProvider === "custom" || this.plugin.settings.llmProvider === "ollama" || this.plugin.settings.llmProvider === "lm-studio") {
-      new import_obsidian.Setting(containerEl).setName("Custom Endpoint URL").setDesc("HTTP URL for the API endpoint.").addText(
-        (text) => text.setPlaceholder("http://127.0.0.1:11434/api/chat").setValue(this.plugin.settings.llmEndpoint).onChange(async (val) => {
-          this.plugin.settings.llmEndpoint = val.trim();
+    if (this.plugin.settings.llmProvider === "openrouter" || this.plugin.settings.llmProvider === "custom" || this.plugin.settings.llmProvider === "ollama" || this.plugin.settings.llmProvider === "lm-studio") {
+      new import_obsidian.Setting(containerEl).setName(this.plugin.settings.llmProvider === "openrouter" ? "OpenRouter Endpoint URL" : "Custom Endpoint URL").setDesc(
+        this.plugin.settings.llmProvider === "openrouter" ? "Default: https://openrouter.ai/api/v1/chat/completions (auto-cleans pasted duplicates)." : "HTTP URL for the API endpoint."
+      ).addText(
+        (text) => text.setPlaceholder(
+          this.plugin.settings.llmProvider === "openrouter" ? "https://openrouter.ai/api/v1/chat/completions" : "http://127.0.0.1:11434/api/chat"
+        ).setValue(this.plugin.settings.llmEndpoint).onChange(async (val) => {
+          let cleanVal = val.trim();
+          if (this.plugin.settings.llmProvider === "openrouter") {
+            cleanVal = this.plugin.llmClient.cleanOpenRouterEndpoint(cleanVal);
+          }
+          this.plugin.settings.llmEndpoint = cleanVal;
           await this.plugin.saveSettings();
         })
       );
@@ -8258,6 +8274,7 @@ var PromptRefineModal = class extends import_obsidian3.Modal {
   configLookup;
   onRefined;
   currentMode = "unified";
+  currentEngine = "openrouter";
   refinedText = "";
   isRefining = false;
   // DOM element references
@@ -8282,6 +8299,7 @@ var PromptRefineModal = class extends import_obsidian3.Modal {
     if (this.currentMode === "disabled") {
       this.currentMode = "unified";
     }
+    this.currentEngine = settings.llmProvider === "openrouter" ? "openrouter" : settings.llmProvider === "ollama" || settings.llmProvider === "lm-studio" ? "local" : "openrouter";
   }
   onOpen() {
     this.buildUI();
@@ -8314,6 +8332,12 @@ var PromptRefineModal = class extends import_obsidian3.Modal {
       btn.setButtonText("\u{1F504} Re-run Refinement");
       btn.onClick(() => this.doRefine());
       this.btnReRun = btn.buttonEl;
+    });
+    new import_obsidian3.Setting(contentEl).setName("AI Refinement Engine").setDesc("Choose between fast Cloud OpenRouter (@preset/glm-5-3-writer) or Local Model.").addDropdown((dropdown) => {
+      dropdown.addOption("openrouter", "\u26A1 OpenRouter (Fast Cloud: @preset/glm-5-3-writer)").addOption("local", "\u{1F5A5}\uFE0F Local Model (Ollama / LM Studio)").addOption("default", `\u2699\uFE0F Plugin Default (${this.settings.llmProvider})`).setValue(this.currentEngine).onChange(async (val) => {
+        this.currentEngine = val;
+        await this.doRefine();
+      });
     });
     const originalBox = contentEl.createDiv({ cls: "drawthings-refine-box" });
     originalBox.createEl("h5", { text: "Original Beat Prompt" });
@@ -8440,7 +8464,17 @@ var PromptRefineModal = class extends import_obsidian3.Modal {
     }
   }
   async doRefine() {
-    this.setRefiningState(true);
+    let providerOverride;
+    let modelOverride;
+    if (this.currentEngine === "openrouter") {
+      providerOverride = "openrouter";
+      modelOverride = this.settings.llmModel && this.settings.llmModel !== "llama3" && this.settings.llmModel !== "default" ? this.settings.llmModel : "@preset/glm-5-3-writer";
+    } else if (this.currentEngine === "local") {
+      providerOverride = "ollama";
+      modelOverride = "llama3";
+    }
+    const engineName = this.currentEngine === "openrouter" ? `OpenRouter (${modelOverride || "@preset/glm-5-3-writer"})` : this.currentEngine === "local" ? "Local Model (Ollama)" : `Plugin Default (${this.settings.llmProvider})`;
+    this.setRefiningState(true, `\u23F3 Synthesizing prompt with ${engineName}...`);
     try {
       let charPrompt = "";
       if (this.settings.enableCharacterResolution && this.beat.character) {
@@ -8452,12 +8486,17 @@ var PromptRefineModal = class extends import_obsidian3.Modal {
       this.refinedText = await this.promptRefiner.refine(this.beat.prompt, {
         mode: this.currentMode,
         promptAnchor: this.shoot.prompt_anchor,
-        characterPrompt: charPrompt
+        characterPrompt: charPrompt,
+        providerOverride,
+        modelOverride
       });
-      this.setRefiningState(false);
+      this.setRefiningState(
+        false,
+        `\u2705 Refined with ${engineName}! You can edit above or save directly to your note.`
+      );
     } catch (err) {
       this.refinedText = this.beat.prompt || "";
-      this.setRefiningState(false, `\u274C Refinement failed: ${err?.message || String(err)}`);
+      this.setRefiningState(false, `\u274C Refinement failed (${engineName}): ${err?.message || String(err)}`);
       new import_obsidian3.Notice(`Refinement failed: ${err?.message || String(err)}`);
     }
   }
@@ -9787,11 +9826,48 @@ var LLMClient = class {
   updateSettings(settings) {
     this.settings = settings;
   }
-  async testConnection() {
+  /**
+   * Sanitizes and normalizes OpenRouter endpoint URLs, repairing accidental paste
+   * duplications like "https://openrouter.ai/api/v1https://openrouter.ai/api/v1/chat/completions"
+   * or missing "/chat/completions" path.
+   */
+  cleanOpenRouterEndpoint(rawUrl) {
+    let url = (rawUrl || "").trim();
+    if (!url) return "https://openrouter.ai/api/v1/chat/completions";
+    const lastHttp = url.lastIndexOf("http://");
+    const lastHttps = url.lastIndexOf("https://");
+    const lastIdx = Math.max(lastHttp, lastHttps);
+    if (lastIdx > 0) {
+      url = url.slice(lastIdx);
+    }
+    if (url.endsWith("/api/v1") || url.endsWith("/api/v1/")) {
+      url = url.replace(/\/+$/, "") + "/chat/completions";
+    }
+    return url;
+  }
+  /**
+   * Automatically discovers an active OpenRouter API key from Smart Composer if present.
+   */
+  detectSmartComposerOpenRouterKey() {
+    try {
+      const scSettings = this.app.plugins?.plugins?.["smart-composer"]?.settings;
+      if (scSettings && Array.isArray(scSettings.providers)) {
+        const found = scSettings.providers.find(
+          (p) => (p.type === "openrouter" || p.id === "openrouter") && p.apiKey
+        );
+        if (found?.apiKey) return found.apiKey.trim();
+      }
+    } catch (e) {
+      console.warn("[DrawThings] Failed to inspect Smart Composer in-memory settings:", e);
+    }
+    return "";
+  }
+  async testConnection(providerOverride) {
     try {
       const response = await this.generateCompletion(
         "You are an assistant.",
-        "Respond with the single word 'READY' and nothing else."
+        "Respond with the single word 'READY' and nothing else.",
+        { providerOverride }
       );
       if (response && response.trim().length > 0) {
         return { success: true, message: `Connected! Response: "${response.trim().slice(0, 60)}"` };
@@ -9801,9 +9877,16 @@ var LLMClient = class {
       return { success: false, message: `Connection failed: ${err?.message || String(err)}` };
     }
   }
-  async generateCompletion(systemPrompt, userPrompt) {
-    const provider = this.settings.llmProvider;
+  async generateCompletion(systemPrompt, userPrompt, options) {
+    const provider = options?.providerOverride || this.settings.llmProvider;
     switch (provider) {
+      case "openrouter":
+        return this.callOpenRouter(
+          systemPrompt,
+          userPrompt,
+          options?.modelOverride,
+          options?.endpointOverride
+        );
       case "smart-composer":
         return this.callSmartComposerBridge(systemPrompt, userPrompt);
       case "ollama":
@@ -9819,6 +9902,53 @@ var LLMClient = class {
       default:
         return this.callOpenAICompatible(systemPrompt, userPrompt);
     }
+  }
+  async callOpenRouter(systemPrompt, userPrompt, modelOverride, endpointOverride) {
+    const rawEndpoint = endpointOverride || this.settings.llmEndpoint || "https://openrouter.ai/api/v1/chat/completions";
+    const endpoint = this.cleanOpenRouterEndpoint(rawEndpoint);
+    const model = modelOverride || (this.settings.llmModel && this.settings.llmModel !== "llama3" && this.settings.llmModel !== "default" ? this.settings.llmModel : "@preset/glm-5-3-writer");
+    let apiKey = this.settings.llmApiKey ? this.settings.llmApiKey.trim() : "";
+    if (!apiKey) {
+      apiKey = this.detectSmartComposerOpenRouterKey();
+    }
+    if (!apiKey) {
+      throw new Error(
+        "OpenRouter API key missing. Please enter your OpenRouter key (sk-or-...) in Draw Things settings or configure Smart Composer."
+      );
+    }
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://obsidian.md",
+      "X-Title": "Obsidian Draw Things Novel Scene Illustrator"
+    };
+    const payload = {
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.7
+    };
+    const req = {
+      url: endpoint,
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload)
+    };
+    const res = await (0, import_obsidian8.requestUrl)(req);
+    const data = res.json;
+    if (data?.choices && data.choices.length > 0) {
+      const msg = data.choices[0].message;
+      const content = msg?.content || msg?.reasoning;
+      if (content && typeof content === "string") {
+        return content;
+      }
+    }
+    if (data?.error?.message) {
+      throw new Error(`OpenRouter Error (${model}): ${data.error.message}`);
+    }
+    throw new Error(`Unexpected OpenRouter response structure: ${JSON.stringify(data).slice(0, 120)}`);
   }
   async callSmartComposerBridge(systemPrompt, userPrompt) {
     let scSettings = this.app.plugins?.plugins?.["smart-composer"]?.settings;
@@ -9841,14 +9971,7 @@ var LLMClient = class {
       const gemini = providers.find((p) => (p.type === "gemini" || p.id === "gemini") && p.apiKey);
       const ollama = providers.find((p) => p.type === "ollama" || p.id === "ollama");
       if (openrouter?.apiKey) {
-        const model = this.settings.llmModel && this.settings.llmModel !== "llama3" ? this.settings.llmModel : "anthropic/claude-sonnet-5";
-        return this.callOpenAIFormat(
-          "https://openrouter.ai/api/v1/chat/completions",
-          openrouter.apiKey,
-          model,
-          systemPrompt,
-          userPrompt
-        );
+        return this.callOpenRouter(systemPrompt, userPrompt, this.settings.llmModel || "@preset/glm-5-3-writer");
       }
       if (anthropic?.apiKey) {
         return this.callAnthropicDirect(anthropic.apiKey, "claude-3-5-sonnet-20241022", systemPrompt, userPrompt);
@@ -9866,13 +9989,7 @@ var LLMClient = class {
     }
     if (this.settings.llmApiKey && this.settings.llmApiKey.trim().length > 0) {
       if (this.settings.llmApiKey.startsWith("sk-or-")) {
-        return this.callOpenAIFormat(
-          "https://openrouter.ai/api/v1/chat/completions",
-          this.settings.llmApiKey,
-          "anthropic/claude-sonnet-5",
-          systemPrompt,
-          userPrompt
-        );
+        return this.callOpenRouter(systemPrompt, userPrompt);
       }
       return this.callOpenAICompatible(systemPrompt, userPrompt);
     }
@@ -10612,7 +10729,11 @@ var PromptRefiner = class {
       inputPrompt = `${inputPrompt}. Style & Set Notes: ${options.promptAnchor.trim()}`;
     }
     const userPromptPayload = `User Prompt: ${inputPrompt}`;
-    const rawResponse = await this.llmClient.generateCompletion(systemPrompt, userPromptPayload);
+    const rawResponse = await this.llmClient.generateCompletion(systemPrompt, userPromptPayload, {
+      providerOverride: options?.providerOverride,
+      modelOverride: options?.modelOverride,
+      endpointOverride: options?.endpointOverride
+    });
     const cleaned = cleanLlmResponse(rawResponse);
     return cleaned;
   }
