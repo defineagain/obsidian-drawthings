@@ -233,11 +233,24 @@ export default class DrawThingsPlugin extends Plugin {
           new PromptRefineModal(
             this.app,
             {
-              id: "cmd-refine",
+              id: `cmd-${raw.beat || 1}-${Date.now()}`,
               beat: raw.beat || 1,
               title: raw.title,
               prompt: raw.prompt || "",
-              character: raw.character
+              character: raw.character,
+              shoot: raw.shoot,
+              preset: raw.preset,
+              model: raw.model,
+              width: raw.width,
+              height: raw.height,
+              aspect: raw.aspect || raw.ratio,
+              steps: raw.steps,
+              cfg: raw.cfg,
+              seed: raw.seed !== undefined ? Number(raw.seed) : undefined,
+              output: raw.output,
+              image: raw.image,
+              strength: raw.strength,
+              config_json: raw.config_json
             },
             file,
             shoot,

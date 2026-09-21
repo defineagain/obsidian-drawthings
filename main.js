@@ -85,17 +85,17 @@ function visit(node, visitor) {
   } else
     visit_(null, node, visitor_, Object.freeze([]));
 }
-function visit_(key, node, visitor, path6) {
-  const ctrl = callVisitor(key, node, visitor, path6);
+function visit_(key, node, visitor, path7) {
+  const ctrl = callVisitor(key, node, visitor, path7);
   if (isNode(ctrl) || isPair(ctrl)) {
-    replaceNode(key, path6, ctrl);
-    return visit_(key, ctrl, visitor, path6);
+    replaceNode(key, path7, ctrl);
+    return visit_(key, ctrl, visitor, path7);
   }
   if (typeof ctrl !== "symbol") {
     if (isCollection(node)) {
-      path6 = Object.freeze(path6.concat(node));
+      path7 = Object.freeze(path7.concat(node));
       for (let i = 0; i < node.items.length; ++i) {
-        const ci = visit_(i, node.items[i], visitor, path6);
+        const ci = visit_(i, node.items[i], visitor, path7);
         if (typeof ci === "number")
           i = ci - 1;
         else if (ci === BREAK)
@@ -106,13 +106,13 @@ function visit_(key, node, visitor, path6) {
         }
       }
     } else if (isPair(node)) {
-      path6 = Object.freeze(path6.concat(node));
-      const ck = visit_("key", node.key, visitor, path6);
+      path7 = Object.freeze(path7.concat(node));
+      const ck = visit_("key", node.key, visitor, path7);
       if (ck === BREAK)
         return BREAK;
       else if (ck === REMOVE)
         node.key = null;
-      const cv = visit_("value", node.value, visitor, path6);
+      const cv = visit_("value", node.value, visitor, path7);
       if (cv === BREAK)
         return BREAK;
       else if (cv === REMOVE)
@@ -130,17 +130,17 @@ async function visitAsync(node, visitor) {
   } else
     await visitAsync_(null, node, visitor_, Object.freeze([]));
 }
-async function visitAsync_(key, node, visitor, path6) {
-  const ctrl = await callVisitor(key, node, visitor, path6);
+async function visitAsync_(key, node, visitor, path7) {
+  const ctrl = await callVisitor(key, node, visitor, path7);
   if (isNode(ctrl) || isPair(ctrl)) {
-    replaceNode(key, path6, ctrl);
-    return visitAsync_(key, ctrl, visitor, path6);
+    replaceNode(key, path7, ctrl);
+    return visitAsync_(key, ctrl, visitor, path7);
   }
   if (typeof ctrl !== "symbol") {
     if (isCollection(node)) {
-      path6 = Object.freeze(path6.concat(node));
+      path7 = Object.freeze(path7.concat(node));
       for (let i = 0; i < node.items.length; ++i) {
-        const ci = await visitAsync_(i, node.items[i], visitor, path6);
+        const ci = await visitAsync_(i, node.items[i], visitor, path7);
         if (typeof ci === "number")
           i = ci - 1;
         else if (ci === BREAK)
@@ -151,13 +151,13 @@ async function visitAsync_(key, node, visitor, path6) {
         }
       }
     } else if (isPair(node)) {
-      path6 = Object.freeze(path6.concat(node));
-      const ck = await visitAsync_("key", node.key, visitor, path6);
+      path7 = Object.freeze(path7.concat(node));
+      const ck = await visitAsync_("key", node.key, visitor, path7);
       if (ck === BREAK)
         return BREAK;
       else if (ck === REMOVE)
         node.key = null;
-      const cv = await visitAsync_("value", node.value, visitor, path6);
+      const cv = await visitAsync_("value", node.value, visitor, path7);
       if (cv === BREAK)
         return BREAK;
       else if (cv === REMOVE)
@@ -184,23 +184,23 @@ function initVisitor(visitor) {
   }
   return visitor;
 }
-function callVisitor(key, node, visitor, path6) {
+function callVisitor(key, node, visitor, path7) {
   if (typeof visitor === "function")
-    return visitor(key, node, path6);
+    return visitor(key, node, path7);
   if (isMap(node))
-    return visitor.Map?.(key, node, path6);
+    return visitor.Map?.(key, node, path7);
   if (isSeq(node))
-    return visitor.Seq?.(key, node, path6);
+    return visitor.Seq?.(key, node, path7);
   if (isPair(node))
-    return visitor.Pair?.(key, node, path6);
+    return visitor.Pair?.(key, node, path7);
   if (isScalar(node))
-    return visitor.Scalar?.(key, node, path6);
+    return visitor.Scalar?.(key, node, path7);
   if (isAlias(node))
-    return visitor.Alias?.(key, node, path6);
+    return visitor.Alias?.(key, node, path7);
   return void 0;
 }
-function replaceNode(key, path6, node) {
-  const parent = path6[path6.length - 1];
+function replaceNode(key, path7, node) {
+  const parent = path7[path7.length - 1];
   if (isCollection(parent)) {
     parent.items[key] = node;
   } else if (isPair(parent)) {
@@ -800,10 +800,10 @@ var init_createNode = __esm({
 });
 
 // node_modules/yaml/browser/dist/nodes/Collection.js
-function collectionFromPath(schema4, path6, value) {
+function collectionFromPath(schema4, path7, value) {
   let v = value;
-  for (let i = path6.length - 1; i >= 0; --i) {
-    const k = path6[i];
+  for (let i = path7.length - 1; i >= 0; --i) {
+    const k = path7[i];
     if (typeof k === "number" && Number.isInteger(k) && k >= 0) {
       const a = [];
       a[k] = v;
@@ -828,7 +828,7 @@ var init_Collection = __esm({
     init_createNode();
     init_identity();
     init_Node();
-    isEmptyPath = (path6) => path6 == null || typeof path6 === "object" && !!path6[Symbol.iterator]().next().done;
+    isEmptyPath = (path7) => path7 == null || typeof path7 === "object" && !!path7[Symbol.iterator]().next().done;
     Collection = class extends NodeBase {
       constructor(type, schema4) {
         super(type);
@@ -858,11 +858,11 @@ var init_Collection = __esm({
        * be a Pair instance or a `{ key, value }` object, which may not have a key
        * that already exists in the map.
        */
-      addIn(path6, value) {
-        if (isEmptyPath(path6))
+      addIn(path7, value) {
+        if (isEmptyPath(path7))
           this.add(value);
         else {
-          const [key, ...rest] = path6;
+          const [key, ...rest] = path7;
           const node = this.get(key, true);
           if (isCollection(node))
             node.addIn(rest, value);
@@ -876,8 +876,8 @@ var init_Collection = __esm({
        * Removes a value from the collection.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path6) {
-        const [key, ...rest] = path6;
+      deleteIn(path7) {
+        const [key, ...rest] = path7;
         if (rest.length === 0)
           return this.delete(key);
         const node = this.get(key, true);
@@ -891,8 +891,8 @@ var init_Collection = __esm({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path6, keepScalar) {
-        const [key, ...rest] = path6;
+      getIn(path7, keepScalar) {
+        const [key, ...rest] = path7;
         const node = this.get(key, true);
         if (rest.length === 0)
           return !keepScalar && isScalar(node) ? node.value : node;
@@ -910,8 +910,8 @@ var init_Collection = __esm({
       /**
        * Checks if the collection includes a value with the key `key`.
        */
-      hasIn(path6) {
-        const [key, ...rest] = path6;
+      hasIn(path7) {
+        const [key, ...rest] = path7;
         if (rest.length === 0)
           return this.has(key);
         const node = this.get(key, true);
@@ -921,8 +921,8 @@ var init_Collection = __esm({
        * Sets a value in this collection. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path6, value) {
-        const [key, ...rest] = path6;
+      setIn(path7, value) {
+        const [key, ...rest] = path7;
         if (rest.length === 0) {
           this.set(key, value);
         } else {
@@ -3356,9 +3356,9 @@ var init_Document = __esm({
           this.contents.add(value);
       }
       /** Adds a value to the document. */
-      addIn(path6, value) {
+      addIn(path7, value) {
         if (assertCollection(this.contents))
-          this.contents.addIn(path6, value);
+          this.contents.addIn(path7, value);
       }
       /**
        * Create a new `Alias` node, ensuring that the target `node` has the required anchor.
@@ -3433,14 +3433,14 @@ var init_Document = __esm({
        * Removes a value from the document.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path6) {
-        if (isEmptyPath(path6)) {
+      deleteIn(path7) {
+        if (isEmptyPath(path7)) {
           if (this.contents == null)
             return false;
           this.contents = null;
           return true;
         }
-        return assertCollection(this.contents) ? this.contents.deleteIn(path6) : false;
+        return assertCollection(this.contents) ? this.contents.deleteIn(path7) : false;
       }
       /**
        * Returns item at `key`, or `undefined` if not found. By default unwraps
@@ -3455,10 +3455,10 @@ var init_Document = __esm({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path6, keepScalar) {
-        if (isEmptyPath(path6))
+      getIn(path7, keepScalar) {
+        if (isEmptyPath(path7))
           return !keepScalar && isScalar(this.contents) ? this.contents.value : this.contents;
-        return isCollection(this.contents) ? this.contents.getIn(path6, keepScalar) : void 0;
+        return isCollection(this.contents) ? this.contents.getIn(path7, keepScalar) : void 0;
       }
       /**
        * Checks if the document includes a value with the key `key`.
@@ -3469,10 +3469,10 @@ var init_Document = __esm({
       /**
        * Checks if the document includes a value at `path`.
        */
-      hasIn(path6) {
-        if (isEmptyPath(path6))
+      hasIn(path7) {
+        if (isEmptyPath(path7))
           return this.contents !== void 0;
-        return isCollection(this.contents) ? this.contents.hasIn(path6) : false;
+        return isCollection(this.contents) ? this.contents.hasIn(path7) : false;
       }
       /**
        * Sets a value in this document. For `!!set`, `value` needs to be a
@@ -3489,13 +3489,13 @@ var init_Document = __esm({
        * Sets a value in this document. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path6, value) {
-        if (isEmptyPath(path6)) {
+      setIn(path7, value) {
+        if (isEmptyPath(path7)) {
           this.contents = value;
         } else if (this.contents == null) {
-          this.contents = collectionFromPath(this.schema, Array.from(path6), value);
+          this.contents = collectionFromPath(this.schema, Array.from(path7), value);
         } else if (assertCollection(this.contents)) {
-          this.contents.setIn(path6, value);
+          this.contents.setIn(path7, value);
         }
       }
       /**
@@ -5400,15 +5400,15 @@ function visit2(cst, visitor) {
     cst = { start: cst.start, value: cst.value };
   _visit(Object.freeze([]), cst, visitor);
 }
-function _visit(path6, item, visitor) {
-  let ctrl = visitor(item, path6);
+function _visit(path7, item, visitor) {
+  let ctrl = visitor(item, path7);
   if (typeof ctrl === "symbol")
     return ctrl;
   for (const field of ["key", "value"]) {
     const token = item[field];
     if (token && "items" in token) {
       for (let i = 0; i < token.items.length; ++i) {
-        const ci = _visit(Object.freeze(path6.concat([[field, i]])), token.items[i], visitor);
+        const ci = _visit(Object.freeze(path7.concat([[field, i]])), token.items[i], visitor);
         if (typeof ci === "number")
           i = ci - 1;
         else if (ci === BREAK2)
@@ -5419,10 +5419,10 @@ function _visit(path6, item, visitor) {
         }
       }
       if (typeof ctrl === "function" && field === "key")
-        ctrl = ctrl(item, path6);
+        ctrl = ctrl(item, path7);
     }
   }
-  return typeof ctrl === "function" ? ctrl(item, path6) : ctrl;
+  return typeof ctrl === "function" ? ctrl(item, path7) : ctrl;
 }
 var BREAK2, SKIP2, REMOVE2;
 var init_cst_visit = __esm({
@@ -5433,9 +5433,9 @@ var init_cst_visit = __esm({
     visit2.BREAK = BREAK2;
     visit2.SKIP = SKIP2;
     visit2.REMOVE = REMOVE2;
-    visit2.itemAtPath = (cst, path6) => {
+    visit2.itemAtPath = (cst, path7) => {
       let item = cst;
-      for (const [field, index] of path6) {
+      for (const [field, index] of path7) {
         const tok = item?.[field];
         if (tok && "items" in tok) {
           item = tok.items[index];
@@ -5444,9 +5444,9 @@ var init_cst_visit = __esm({
       }
       return item;
     };
-    visit2.parentCollection = (cst, path6) => {
-      const parent = visit2.itemAtPath(cst, path6.slice(0, -1));
-      const field = path6[path6.length - 1][0];
+    visit2.parentCollection = (cst, path7) => {
+      const parent = visit2.itemAtPath(cst, path7.slice(0, -1));
+      const field = path7[path7.length - 1][0];
       const coll = parent?.[field];
       if (coll && "items" in coll)
         return coll;
@@ -7617,6 +7617,7 @@ var import_obsidian2 = require("obsidian");
 var import_child_process2 = require("child_process");
 var fs = __toESM(require("fs"));
 var path = __toESM(require("path"));
+var os = __toESM(require("os"));
 var QueueManager = class {
   app;
   queue = [];
@@ -7785,15 +7786,16 @@ var QueueManager = class {
     }
   }
   runCliJob(job) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       const cliBin = job.cliArgs[0];
       const args = job.cliArgs.slice(1);
       console.log(`[DrawThings] Spawning: ${cliBin} ${args.join(" ")}`);
       job.logs.push(`> ${cliBin} ${args.join(" ")}`);
+      const userLocalBin = path.join(os.homedir(), ".local", "bin");
       const child = (0, import_child_process2.spawn)(cliBin, args, {
         env: {
           ...process.env,
-          PATH: `/usr/local/bin:/opt/homebrew/bin:/Users/daniel/.local/bin:${process.env.PATH || ""}`
+          PATH: `/usr/local/bin:/opt/homebrew/bin:${userLocalBin}:${process.env.PATH || ""}`
         }
       });
       this.currentProcess = child;
@@ -7814,9 +7816,9 @@ var QueueManager = class {
       });
       child.on("close", (code) => {
         if (code === 0) {
-          resolve();
+          resolve2();
         } else if (job.status === "cancelled") {
-          resolve();
+          resolve2();
         } else {
           const lastLog = job.logs.slice(-3).join("\n");
           reject(new Error(`Exit code ${code}: ${lastLog}`));
@@ -7962,11 +7964,289 @@ var CharacterResolver = class {
 // src/plotbeatProcessor.ts
 var import_obsidian4 = require("obsidian");
 init_browser();
-var path2 = __toESM(require("path"));
+var path3 = __toESM(require("path"));
 var fs2 = __toESM(require("fs"));
 
 // src/refineModal.ts
 var import_obsidian3 = require("obsidian");
+
+// src/noteUpdater.ts
+init_browser();
+function formatPromptForYaml(prompt, baseIndent = "") {
+  const trimmed = prompt.trim();
+  if (trimmed.includes("\n")) {
+    const lineIndent = baseIndent + "  ";
+    const indentedLines = trimmed.split(/\r?\n/).map((line) => line.trim().length > 0 ? `${lineIndent}${line}` : "");
+    return `${baseIndent}prompt: |
+${indentedLines.join("\n")}`;
+  }
+  const escaped = trimmed.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return `${baseIndent}prompt: "${escaped}"`;
+}
+function updatePromptInNoteContent(content, beat, newPrompt) {
+  if (!content) {
+    return { success: false, newContent: content, message: "Note content is empty." };
+  }
+  const blockRegex = /(```(?:plotbeat|scene-script)\s*\r?\n)([\s\S]*?)(\r?\n```)/g;
+  let blockMatch;
+  let targetBlock = null;
+  const allBlocks = [];
+  while ((blockMatch = blockRegex.exec(content)) !== null) {
+    const prefix = blockMatch[1];
+    const body = blockMatch[2];
+    const suffix = blockMatch[3];
+    const isPlotbeat = prefix.includes("plotbeat");
+    const type = isPlotbeat ? "plotbeat" : "scene-script";
+    let parsed = null;
+    try {
+      parsed = parse(body);
+    } catch {
+    }
+    allBlocks.push({
+      type,
+      fullMatch: blockMatch[0],
+      prefix,
+      body,
+      suffix,
+      index: blockMatch.index,
+      parsed
+    });
+  }
+  for (const blk of allBlocks) {
+    if (blk.type === "plotbeat") {
+      const bNum = blk.parsed?.beat ?? 1;
+      const matchesNum = String(bNum) === String(beat.beat);
+      const matchesTitle = beat.title && blk.parsed?.title && String(blk.parsed.title).trim().toLowerCase() === beat.title.trim().toLowerCase();
+      const matchesOriginalPrompt = beat.originalPrompt && blk.body.includes(beat.originalPrompt.slice(0, Math.min(30, beat.originalPrompt.length)));
+      if (matchesNum || matchesTitle || matchesOriginalPrompt) {
+        targetBlock = blk;
+        break;
+      }
+    } else if (blk.type === "scene-script") {
+      if (Array.isArray(blk.parsed?.beats)) {
+        const foundBeat = blk.parsed.beats.some(
+          (b, idx) => String(b.beat ?? idx + 1) === String(beat.beat) || beat.title && b.title && String(b.title).trim().toLowerCase() === beat.title.trim().toLowerCase()
+        );
+        if (foundBeat) {
+          targetBlock = blk;
+          break;
+        }
+      }
+    }
+  }
+  if (!targetBlock && allBlocks.length === 1 && allBlocks[0].type === "plotbeat") {
+    targetBlock = allBlocks[0];
+  }
+  if (targetBlock) {
+    if (targetBlock.type === "plotbeat") {
+      const promptRegex = /^([ \t]*)(prompt:[ \t]*)(?:.*(?:\r?\n\1[ \t]+.*|\r?\n[ \t]*$)*)/m;
+      const promptMatch = promptRegex.exec(targetBlock.body);
+      let newBody;
+      if (promptMatch) {
+        const baseIndent = promptMatch[1];
+        const formattedPrompt = formatPromptForYaml(newPrompt, baseIndent);
+        newBody = targetBlock.body.replace(promptRegex, formattedPrompt);
+      } else {
+        const formattedPrompt = formatPromptForYaml(newPrompt, "");
+        newBody = targetBlock.body.trimEnd() + "\n" + formattedPrompt + "\n";
+      }
+      const newFullBlock = targetBlock.prefix + newBody + targetBlock.suffix;
+      const newContent = content.slice(0, targetBlock.index) + newFullBlock + content.slice(targetBlock.index + targetBlock.fullMatch.length);
+      return {
+        success: true,
+        newContent,
+        message: `Updated Beat ${beat.beat} prompt in \`\`\`plotbeat block.`
+      };
+    } else if (targetBlock.type === "scene-script") {
+      const body = targetBlock.body;
+      const beatRegex = new RegExp(
+        `(^([ \\t]*)-[ \\t]+(?:[\\s\\S]*?\\r?\\n\\2[ \\t]+)?beat:[ \\t]*["']?${beat.beat}["']?\\b[\\s\\S]*?)(?=(?:\\r?\\n\\2-[ \\t]+)|(?:\\r?\\n[ \\t]*[a-zA-Z0-9_-]+:[ \\t]*)|$)`,
+        "m"
+      );
+      const beatMatch = beatRegex.exec(body);
+      if (beatMatch) {
+        const beatItemText = beatMatch[1];
+        const listIndent = beatMatch[2];
+        const propIndent = listIndent + "  ";
+        const promptRegex = /^([ \t]*)(prompt:[ \t]*)(?:.*(?:\r?\n\1[ \t]+.*|\r?\n[ \t]*$)*)/m;
+        const pMatch = promptRegex.exec(beatItemText);
+        let newBeatItemText;
+        if (pMatch) {
+          const baseIndent = pMatch[1];
+          const formatted = formatPromptForYaml(newPrompt, baseIndent);
+          newBeatItemText = beatItemText.replace(promptRegex, formatted);
+        } else {
+          const formatted = formatPromptForYaml(newPrompt, propIndent);
+          newBeatItemText = beatItemText.trimEnd() + "\n" + formatted + "\n";
+        }
+        const newBody = body.slice(0, beatMatch.index) + newBeatItemText + body.slice(beatMatch.index + beatItemText.length);
+        const newFullBlock = targetBlock.prefix + newBody + targetBlock.suffix;
+        const newContent = content.slice(0, targetBlock.index) + newFullBlock + content.slice(targetBlock.index + targetBlock.fullMatch.length);
+        return {
+          success: true,
+          newContent,
+          message: `Updated Beat ${beat.beat} prompt in \`\`\`scene-script block.`
+        };
+      }
+    }
+  }
+  if (beat.originalPrompt && beat.originalPrompt.trim().length > 5) {
+    const origTrim = beat.originalPrompt.trim();
+    if (content.includes(origTrim)) {
+      const newContent = content.replace(origTrim, newPrompt.trim());
+      return {
+        success: true,
+        newContent,
+        message: "Updated prompt via direct text replacement."
+      };
+    }
+    const snippet = origTrim.slice(0, 40);
+    const snippetIdx = content.indexOf(snippet);
+    if (snippetIdx !== -1) {
+      const before = content.slice(0, snippetIdx);
+      const after = content.slice(snippetIdx);
+      const afterLines = after.split(/\r?\n/);
+      afterLines[0] = newPrompt.trim();
+      const newContent = before + afterLines.join("\n");
+      return {
+        success: true,
+        newContent,
+        message: "Updated prompt via snippet match."
+      };
+    }
+  }
+  return {
+    success: false,
+    newContent: content,
+    message: "Could not auto-locate beat prompt in note."
+  };
+}
+
+// src/jobBuilder.ts
+var path2 = __toESM(require("path"));
+function resolveSafeVaultPath(vaultPath, userPath, defaultRelPath) {
+  const target = userPath && userPath.trim() ? userPath.trim() : defaultRelPath;
+  if (!vaultPath) {
+    return target;
+  }
+  const normalized = path2.normalize(target);
+  if (path2.isAbsolute(normalized)) {
+    if (normalized.startsWith(vaultPath)) {
+      return normalized;
+    }
+    console.warn(`[DrawThings Security] Absolute path outside vault detected ("${userPath}"). Confining to vault.`);
+    const safeFilename = path2.basename(normalized);
+    return path2.join(vaultPath, safeFilename);
+  }
+  const resolved = path2.resolve(vaultPath, normalized);
+  if (!resolved.startsWith(vaultPath)) {
+    console.warn(`[DrawThings Security] Directory traversal detected ("${userPath}"). Confining to vault.`);
+    const safeFilename = path2.basename(normalized);
+    return path2.join(vaultPath, safeFilename);
+  }
+  return resolved;
+}
+async function buildGenerationJob(app, beat, sourcePath, settings, configLookup, promptOverride) {
+  const sceneSlug = beat.scene?.toLowerCase().replace(/[^a-z0-9_-]/g, "_") || "scene";
+  const beatSlug = String(beat.beat).padStart(2, "0");
+  const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
+  const shootQuery = beat.shoot || beat.preset || settings.activeShoot;
+  const shoot = configLookup.getShoot(shootQuery);
+  const presetKey = beat.preset || "";
+  const preset = settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
+  let model = beat.model || shoot?.model || preset?.model || settings.defaultModel;
+  const effectiveLora = shoot?.lora || "none";
+  if (effectiveLora && effectiveLora.toLowerCase() !== "none") {
+    const fixed = configLookup.checkAndFixModelLoraCompatibility(model, effectiveLora);
+    model = fixed.model;
+  }
+  let width = beat.width;
+  let height = beat.height;
+  if ((!width || !height) && (beat.aspect || shoot?.width || preset?.width)) {
+    if (beat.aspect) {
+      const dims = parseAspectRatio(beat.aspect);
+      if (dims) {
+        width = dims.width;
+        height = dims.height;
+      }
+    } else if (shoot?.width && shoot?.height) {
+      width = shoot.width;
+      height = shoot.height;
+    } else if (preset?.width && preset?.height) {
+      width = preset.width;
+      height = preset.height;
+    }
+  }
+  width = roundToMultipleOf64(width || settings.defaultWidth);
+  height = roundToMultipleOf64(height || settings.defaultHeight);
+  const steps = beat.steps || shoot?.steps || preset?.steps || settings.defaultSteps;
+  const cfg = beat.cfg || shoot?.cfg || preset?.cfg || settings.defaultCfg;
+  const seed = beat.seed !== void 0 ? beat.seed : Math.floor(Math.random() * 2e9);
+  const effectivePrompt = promptOverride ? promptOverride.trim() : beat.prompt;
+  let effectiveNegative = beat.negative_prompt || "";
+  if (preset?.negativePrompt) {
+    effectiveNegative = effectiveNegative ? `${preset.negativePrompt}, ${effectiveNegative}` : preset.negativePrompt;
+  }
+  const vaultPath = app.vault.adapter.getBasePath ? app.vault.adapter.getBasePath() : "";
+  const defaultFolder = settings.outputFolderPattern.replace("{scene}", sceneSlug);
+  const defaultRelPath = `${defaultFolder}/${beatSlug}_${titleSlug}.png`;
+  const absOutputPath = resolveSafeVaultPath(vaultPath, beat.output, defaultRelPath);
+  const absMetaPath = absOutputPath.replace(/\.[^.]+$/, ".meta.json");
+  const cliArgs = [settings.cliPath, "generate"];
+  if (settings.modelsDir && settings.modelsDir.trim()) {
+    cliArgs.push("--models-dir", settings.modelsDir.trim());
+  }
+  cliArgs.push("--model", model);
+  cliArgs.push("--prompt", effectivePrompt);
+  if (effectiveNegative.trim()) {
+    cliArgs.push("--negative-prompt", effectiveNegative.trim());
+  }
+  cliArgs.push("--width", String(width));
+  cliArgs.push("--height", String(height));
+  cliArgs.push("--steps", String(steps));
+  cliArgs.push("--cfg", String(cfg));
+  cliArgs.push("--seed", String(seed));
+  cliArgs.push("--disable-preview");
+  cliArgs.push("--output", absOutputPath);
+  if (beat.image) {
+    const absInputImg = resolveSafeVaultPath(vaultPath, beat.image, beat.image);
+    cliArgs.push("--image", absInputImg);
+    if (beat.strength !== void 0) {
+      cliArgs.push("--strength", String(beat.strength));
+    }
+  }
+  const configJson = beat.config_json || (shoot ? configLookup.buildConfigJson(shoot) : preset?.configJson || "");
+  if (configJson) {
+    cliArgs.push("--config-json", configJson);
+  }
+  return {
+    id: `${beat.id}-${Date.now()}`,
+    beatId: beat.id,
+    notePath: sourcePath,
+    scene: beat.scene || "Scene",
+    beatNumber: beat.beat,
+    title: beat.title || `Beat ${beat.beat}`,
+    prompt: beat.prompt,
+    effectivePrompt,
+    shootName: shoot?.name,
+    configJson,
+    model,
+    seed,
+    width,
+    height,
+    steps,
+    cfg,
+    outputPath: absOutputPath,
+    metaPath: absMetaPath,
+    cliArgs,
+    status: "pending",
+    progress: 0,
+    statusMessage: "Queued",
+    logs: []
+  };
+}
+
+// src/refineModal.ts
 var PromptRefineModal = class extends import_obsidian3.Modal {
   beat;
   noteFile;
@@ -7980,6 +8260,13 @@ var PromptRefineModal = class extends import_obsidian3.Modal {
   currentMode = "unified";
   refinedText = "";
   isRefining = false;
+  // DOM element references
+  textArea;
+  statusEl;
+  btnUpdateNote;
+  btnQueueGen;
+  btnCopy;
+  btnReRun;
   constructor(app, beat, noteFile, shoot, promptRefiner, charResolver, queue, settings, configLookup, onRefined) {
     super(app);
     this.beat = beat;
@@ -7997,127 +8284,238 @@ var PromptRefineModal = class extends import_obsidian3.Modal {
     }
   }
   onOpen() {
-    this.render();
+    this.buildUI();
     this.doRefine();
   }
-  render() {
+  buildUI() {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("drawthings-refine-modal");
-    contentEl.createEl("h3", { text: `\u{1F9E0} Refine Prompt: Beat ${this.beat.beat} ("${this.beat.title || "Beat"}")` });
+    contentEl.createEl("h3", {
+      text: `\u{1F9E0} Refine Prompt: Beat ${this.beat.beat} ("${this.beat.title || "Beat"}")`
+    });
     const contextRow = contentEl.createDiv({ cls: "drawthings-refine-context" });
-    contextRow.createSpan({ cls: "drawthings-badge shoot-badge", text: `\u{1F3AC} Shoot: ${this.shoot.name}` });
+    contextRow.createSpan({
+      cls: "drawthings-badge shoot-badge",
+      text: `\u{1F3AC} Shoot: ${this.shoot.name}`
+    });
     if (this.shoot.prompt_anchor) {
-      contextRow.createSpan({ cls: "drawthings-refine-anchor-preview", text: `Anchor: ${this.shoot.prompt_anchor.slice(0, 60)}...` });
+      contextRow.createSpan({
+        cls: "drawthings-refine-anchor-preview",
+        text: `Anchor: ${this.shoot.prompt_anchor.slice(0, 60)}...`
+      });
     }
     new import_obsidian3.Setting(contentEl).setName("Refinement Architecture Mode").setDesc("Unified Master combines Visionary logic with ENI Shoot Bible 5-part architecture.").addDropdown((dropdown) => {
       dropdown.addOption("unified", "Unified Master (Visionary + ENI Bible)").addOption("visionary", "Visionary Artist (~500 Words)").addOption("eni_bible", "Pure ENI Shoot Bible (5 Sections)").setValue(this.currentMode).onChange(async (val) => {
         this.currentMode = val;
         await this.doRefine();
       });
-    }).addButton(
-      (btn) => btn.setButtonText("\u{1F504} Re-run Refinement").onClick(() => this.doRefine())
-    );
+    }).addButton((btn) => {
+      btn.setButtonText("\u{1F504} Re-run Refinement");
+      btn.onClick(() => this.doRefine());
+      this.btnReRun = btn.buttonEl;
+    });
     const originalBox = contentEl.createDiv({ cls: "drawthings-refine-box" });
     originalBox.createEl("h5", { text: "Original Beat Prompt" });
-    originalBox.createEl("p", { cls: "drawthings-refine-original-text", text: this.beat.prompt || "(No prompt)" });
+    originalBox.createEl("p", {
+      cls: "drawthings-refine-original-text",
+      text: this.beat.prompt || "(No prompt specified)"
+    });
     const refinedBox = contentEl.createDiv({ cls: "drawthings-refine-box" });
     refinedBox.createEl("h5", { text: "Refined Visionary Prompt" });
-    const textArea = refinedBox.createEl("textarea", {
+    this.textArea = refinedBox.createEl("textarea", {
       cls: "drawthings-refine-textarea",
-      attr: { rows: "9" }
+      attr: { rows: "10" }
     });
-    textArea.value = this.isRefining ? "\u23F3 Synthesizing photographic prompt architecture with AI..." : this.refinedText;
-    textArea.disabled = this.isRefining;
-    textArea.addEventListener("input", () => {
-      this.refinedText = textArea.value;
+    this.textArea.placeholder = "Refined prompt will appear here...";
+    this.textArea.addEventListener("input", () => {
+      this.refinedText = this.textArea.value;
     });
+    this.statusEl = refinedBox.createDiv({ cls: "drawthings-refine-status" });
+    this.statusEl.setText("Ready");
     const btnRow = contentEl.createDiv({ cls: "drawthings-refine-actions" });
-    const btnUpdateNote = btnRow.createEl("button", {
+    this.btnUpdateNote = btnRow.createEl("button", {
       cls: "mod-cta drawthings-btn",
-      text: "\u{1F4BE} Save to Note",
-      attr: { disabled: this.isRefining ? "true" : void 0 }
+      text: "\u{1F4BE} Save to Note"
     });
-    const btnQueueGen = btnRow.createEl("button", {
+    this.btnQueueGen = btnRow.createEl("button", {
       cls: "drawthings-btn",
-      text: "\u{1F3A8} Save & Generate Now",
-      attr: { disabled: this.isRefining ? "true" : void 0 }
+      text: "\u{1F3A8} Save & Generate Now"
     });
-    const btnCopy = btnRow.createEl("button", {
+    this.btnCopy = btnRow.createEl("button", {
       cls: "drawthings-btn",
-      text: "\u{1F4CB} Copy Text",
-      attr: { disabled: this.isRefining ? "true" : void 0 }
+      text: "\u{1F4CB} Copy Text"
     });
     const btnCancel = btnRow.createEl("button", {
       cls: "drawthings-btn",
       text: "Close"
     });
-    btnUpdateNote.addEventListener("click", async () => {
-      if (!this.refinedText || this.refinedText.trim().length === 0) {
+    this.btnUpdateNote.addEventListener("click", async () => {
+      const textToSave = this.refinedText.trim() || this.textArea.value.trim();
+      if (!textToSave) {
         new import_obsidian3.Notice("No refined text to save.");
         return;
       }
-      await this.saveRefinedPromptToNote(this.refinedText.trim());
-      if (this.onRefined) this.onRefined(this.refinedText.trim());
+      await this.saveRefinedPromptToNote(textToSave);
+      if (this.onRefined) this.onRefined(textToSave);
       this.close();
     });
-    btnQueueGen.addEventListener("click", async () => {
-      if (!this.refinedText || this.refinedText.trim().length === 0) {
+    this.btnQueueGen.addEventListener("click", async () => {
+      const textToSave = this.refinedText.trim() || this.textArea.value.trim();
+      if (!textToSave) {
         new import_obsidian3.Notice("No refined text to generate.");
         return;
       }
-      await this.saveRefinedPromptToNote(this.refinedText.trim());
-      if (this.onRefined) this.onRefined(this.refinedText.trim());
+      await this.saveRefinedPromptToNote(textToSave);
+      if (this.onRefined) this.onRefined(textToSave);
       this.close();
-      const beatCopy = { ...this.beat, prompt: this.refinedText.trim() };
-      new import_obsidian3.Notice(`Queued plate generation for Beat ${beatCopy.beat}`);
+      try {
+        const beatCopy = { ...this.beat, prompt: textToSave };
+        const job = await buildGenerationJob(
+          this.app,
+          beatCopy,
+          this.noteFile.path,
+          this.settings,
+          this.configLookup,
+          textToSave
+        );
+        this.queue.enqueue(job);
+      } catch (err) {
+        new import_obsidian3.Notice(`Failed to enqueue generation: ${err.message}`);
+      }
     });
-    btnCopy.addEventListener("click", () => {
-      navigator.clipboard.writeText(this.refinedText);
-      new import_obsidian3.Notice("Refined prompt copied to clipboard!");
+    this.btnCopy.addEventListener("click", async () => {
+      const textToCopy = this.refinedText.trim() || this.textArea.value.trim();
+      if (!textToCopy) {
+        new import_obsidian3.Notice("No refined text to copy.");
+        return;
+      }
+      const ok = await this.copyToClipboard(textToCopy);
+      if (ok) {
+        new import_obsidian3.Notice("\u{1F4CB} Refined prompt copied to clipboard!");
+      } else {
+        new import_obsidian3.Notice("\u26A0\uFE0F Failed to copy prompt to clipboard.");
+      }
     });
     btnCancel.addEventListener("click", () => {
       this.close();
     });
   }
+  setRefiningState(isRefining, statusText) {
+    this.isRefining = isRefining;
+    if (this.btnUpdateNote) {
+      this.btnUpdateNote.disabled = isRefining;
+      if (!isRefining) this.btnUpdateNote.removeAttribute("disabled");
+    }
+    if (this.btnQueueGen) {
+      this.btnQueueGen.disabled = isRefining;
+      if (!isRefining) this.btnQueueGen.removeAttribute("disabled");
+    }
+    if (this.btnCopy) {
+      this.btnCopy.disabled = isRefining;
+      if (!isRefining) this.btnCopy.removeAttribute("disabled");
+    }
+    if (this.btnReRun) {
+      this.btnReRun.disabled = isRefining;
+      if (!isRefining) this.btnReRun.removeAttribute("disabled");
+    }
+    if (this.textArea) {
+      this.textArea.disabled = isRefining;
+      if (!isRefining) {
+        this.textArea.removeAttribute("disabled");
+        this.textArea.value = this.refinedText;
+      } else {
+        this.textArea.value = "\u23F3 Synthesizing photographic prompt architecture with AI...";
+      }
+    }
+    if (this.statusEl) {
+      this.statusEl.toggleClass("is-refining", isRefining);
+      if (statusText) {
+        this.statusEl.setText(statusText);
+      } else if (isRefining) {
+        this.statusEl.setText("\u23F3 Synthesizing photographic prompt architecture with AI...");
+      } else {
+        this.statusEl.setText("\u2705 Prompt refined! You can edit above or save directly to your note.");
+      }
+    }
+  }
   async doRefine() {
-    this.isRefining = true;
-    this.render();
+    this.setRefiningState(true);
     try {
       let charPrompt = "";
       if (this.settings.enableCharacterResolution && this.beat.character) {
-        charPrompt = await this.charResolver.resolveCharacterPrompt(this.beat.character, this.settings.characterFolders);
+        charPrompt = await this.charResolver.resolveCharacterPrompt(
+          this.beat.character,
+          this.settings.characterFolders
+        );
       }
       this.refinedText = await this.promptRefiner.refine(this.beat.prompt, {
         mode: this.currentMode,
         promptAnchor: this.shoot.prompt_anchor,
         characterPrompt: charPrompt
       });
+      this.setRefiningState(false);
     } catch (err) {
-      new import_obsidian3.Notice(`Refinement failed: ${err.message}`);
-      this.refinedText = this.beat.prompt;
-    } finally {
-      this.isRefining = false;
-      this.render();
+      this.refinedText = this.beat.prompt || "";
+      this.setRefiningState(false, `\u274C Refinement failed: ${err?.message || String(err)}`);
+      new import_obsidian3.Notice(`Refinement failed: ${err?.message || String(err)}`);
     }
   }
   async saveRefinedPromptToNote(newPrompt) {
     try {
       const content = await this.app.vault.read(this.noteFile);
-      const escapedPrompt = this.beat.prompt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const promptRegex = new RegExp(`(prompt:\\s*)(["']?${escapedPrompt}["']?)`, "m");
-      if (promptRegex.test(content)) {
-        const formattedPrompt = newPrompt.includes("\n") ? `prompt: |
-  ${newPrompt.split("\n").join("\n  ")}` : `prompt: "${newPrompt.replace(/"/g, '\\"')}"`;
-        const updated = content.replace(promptRegex, formattedPrompt);
-        await this.app.vault.modify(this.noteFile, updated);
-        new import_obsidian3.Notice(`Updated prompt in "${this.noteFile.basename}"!`);
+      const result = updatePromptInNoteContent(
+        content,
+        {
+          beat: this.beat.beat,
+          title: this.beat.title,
+          originalPrompt: this.beat.prompt
+        },
+        newPrompt
+      );
+      if (result.success) {
+        await this.app.vault.modify(this.noteFile, result.newContent);
+        new import_obsidian3.Notice(`\u{1F4BE} Saved refined prompt to "${this.noteFile.basename}"!`);
+        return true;
       } else {
-        new import_obsidian3.Notice("Could not auto-locate prompt in note. Copied to clipboard instead.");
-        navigator.clipboard.writeText(newPrompt);
+        await this.copyToClipboard(newPrompt);
+        new import_obsidian3.Notice(
+          `\u26A0\uFE0F Could not auto-locate Beat ${this.beat.beat} in note. Copied prompt to clipboard!`,
+          7e3
+        );
+        return false;
       }
     } catch (e) {
-      new import_obsidian3.Notice(`Failed to update note: ${e.message}`);
+      new import_obsidian3.Notice(`\u274C Failed to update note: ${e.message}`);
+      await this.copyToClipboard(newPrompt);
+      return false;
+    }
+  }
+  async copyToClipboard(text) {
+    try {
+      if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (e) {
+      console.warn("[DrawThings] navigator.clipboard.writeText failed:", e);
+    }
+    try {
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.setAttribute("readonly", "");
+      el.style.position = "fixed";
+      el.style.top = "-9999px";
+      el.style.left = "-9999px";
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+      const success = document.execCommand("copy");
+      document.body.removeChild(el);
+      return success;
+    } catch (e) {
+      console.error("[DrawThings] execCommand copy failed:", e);
+      return false;
     }
   }
 };
@@ -8190,41 +8588,10 @@ var PlotbeatProcessor = class {
     };
   }
   async resolveJobParameters(beat, sourcePath) {
-    const sceneSlug = beat.scene?.toLowerCase().replace(/[^a-z0-9_-]/g, "_") || "scene";
-    const beatSlug = String(beat.beat).padStart(2, "0");
-    const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
     const shootQuery = beat.shoot || beat.preset || this.settings.activeShoot;
     const shoot = this.configLookup.getShoot(shootQuery);
     const presetKey = beat.preset || "";
     const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
-    let model = beat.model || shoot?.model || preset?.model || this.settings.defaultModel;
-    const effectiveLora = shoot?.lora || "none";
-    if (effectiveLora && effectiveLora.toLowerCase() !== "none") {
-      const fixed = this.configLookup.checkAndFixModelLoraCompatibility(model, effectiveLora);
-      model = fixed.model;
-    }
-    let width = beat.width;
-    let height = beat.height;
-    if ((!width || !height) && (beat.aspect || shoot?.width || preset?.width)) {
-      if (beat.aspect) {
-        const dims = parseAspectRatio(beat.aspect);
-        if (dims) {
-          width = dims.width;
-          height = dims.height;
-        }
-      } else if (shoot?.width && shoot?.height) {
-        width = shoot.width;
-        height = shoot.height;
-      } else if (preset?.width && preset?.height) {
-        width = preset.width;
-        height = preset.height;
-      }
-    }
-    width = roundToMultipleOf64(width || this.settings.defaultWidth);
-    height = roundToMultipleOf64(height || this.settings.defaultHeight);
-    const steps = beat.steps || shoot?.steps || preset?.steps || this.settings.defaultSteps;
-    const cfg = beat.cfg || shoot?.cfg || preset?.cfg || this.settings.defaultCfg;
-    const seed = beat.seed !== void 0 ? beat.seed : Math.floor(Math.random() * 2e9);
     let charPrompt = "";
     if (this.settings.enableCharacterResolution && beat.character) {
       charPrompt = await this.charResolver.resolveCharacterPrompt(beat.character, this.settings.characterFolders);
@@ -8254,70 +8621,7 @@ var PlotbeatProcessor = class {
         effectivePrompt = `${effectivePrompt}${preset.promptSuffix}`;
       }
     }
-    let effectiveNegative = beat.negative_prompt || "";
-    if (preset?.negativePrompt) {
-      effectiveNegative = effectiveNegative ? `${preset.negativePrompt}, ${effectiveNegative}` : preset.negativePrompt;
-    }
-    const vaultPath = this.app.vault.adapter.getBasePath ? this.app.vault.adapter.getBasePath() : "";
-    let relOutputPath = beat.output;
-    if (!relOutputPath) {
-      const folder = this.settings.outputFolderPattern.replace("{scene}", sceneSlug);
-      relOutputPath = `${folder}/${beatSlug}_${titleSlug}.png`;
-    }
-    const absOutputPath = path2.isAbsolute(relOutputPath) ? relOutputPath : path2.join(vaultPath, relOutputPath);
-    const absMetaPath = absOutputPath.replace(/\.[^.]+$/, ".meta.json");
-    const cliArgs = [this.settings.cliPath, "generate"];
-    if (this.settings.modelsDir && this.settings.modelsDir.trim()) {
-      cliArgs.push("--models-dir", this.settings.modelsDir.trim());
-    }
-    cliArgs.push("--model", model);
-    cliArgs.push("--prompt", effectivePrompt);
-    if (effectiveNegative.trim()) {
-      cliArgs.push("--negative-prompt", effectiveNegative.trim());
-    }
-    cliArgs.push("--width", String(width));
-    cliArgs.push("--height", String(height));
-    cliArgs.push("--steps", String(steps));
-    cliArgs.push("--cfg", String(cfg));
-    cliArgs.push("--seed", String(seed));
-    cliArgs.push("--disable-preview");
-    cliArgs.push("--output", absOutputPath);
-    if (beat.image) {
-      const absInputImg = path2.isAbsolute(beat.image) ? beat.image : path2.join(vaultPath, beat.image);
-      cliArgs.push("--image", absInputImg);
-      if (beat.strength !== void 0) {
-        cliArgs.push("--strength", String(beat.strength));
-      }
-    }
-    const configJson = beat.config_json || (shoot ? this.configLookup.buildConfigJson(shoot) : preset?.configJson || "");
-    if (configJson) {
-      cliArgs.push("--config-json", configJson);
-    }
-    return {
-      id: `${beat.id}-${Date.now()}`,
-      beatId: beat.id,
-      notePath: sourcePath,
-      scene: beat.scene || "Scene",
-      beatNumber: beat.beat,
-      title: beat.title || `Beat ${beat.beat}`,
-      prompt: beat.prompt,
-      effectivePrompt,
-      shootName: shoot?.name,
-      configJson,
-      model,
-      seed,
-      width,
-      height,
-      steps,
-      cfg,
-      outputPath: absOutputPath,
-      metaPath: absMetaPath,
-      cliArgs,
-      status: "pending",
-      progress: 0,
-      statusMessage: "Queued",
-      logs: []
-    };
+    return buildGenerationJob(this.app, beat, sourcePath, this.settings, this.configLookup, effectivePrompt);
   }
   renderCard(container, beat, ctx) {
     const card = container.createDiv({ cls: "drawthings-beat-card" });
@@ -8345,7 +8649,7 @@ var PlotbeatProcessor = class {
     const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
     const defaultRel = `${this.settings.outputFolderPattern.replace("{scene}", sceneSlug)}/${beatSlug}_${titleSlug}.png`;
     const relOutputPath = beat.output || defaultRel;
-    const absOutputPath = path2.isAbsolute(relOutputPath) ? relOutputPath : path2.join(vaultPath, relOutputPath);
+    const absOutputPath = path3.isAbsolute(relOutputPath) ? relOutputPath : path3.join(vaultPath, relOutputPath);
     const body = card.createDiv({ cls: "drawthings-card-body" });
     const previewArea = body.createDiv({ cls: "drawthings-preview-area" });
     const imgContainer = previewArea.createDiv({ cls: "drawthings-image-wrapper" });
@@ -8478,7 +8782,7 @@ var PlotbeatProcessor = class {
 // src/sceneScriptProcessor.ts
 var import_obsidian5 = require("obsidian");
 init_browser();
-var path3 = __toESM(require("path"));
+var path4 = __toESM(require("path"));
 var fs3 = __toESM(require("fs"));
 var SceneScriptProcessor = class {
   app;
@@ -8574,41 +8878,10 @@ var SceneScriptProcessor = class {
     };
   }
   async buildJobForBeat(beat, sourcePath) {
-    const sceneSlug = beat.scene?.toLowerCase().replace(/[^a-z0-9_-]/g, "_") || "scene";
-    const beatSlug = String(beat.beat).padStart(2, "0");
-    const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
     const shootQuery = beat.shoot || beat.preset || this.settings.activeShoot;
     const shoot = this.configLookup.getShoot(shootQuery);
     const presetKey = beat.preset || "";
     const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
-    let model = beat.model || shoot?.model || preset?.model || this.settings.defaultModel;
-    const effectiveLora = shoot?.lora || "none";
-    if (effectiveLora && effectiveLora.toLowerCase() !== "none") {
-      const fixed = this.configLookup.checkAndFixModelLoraCompatibility(model, effectiveLora);
-      model = fixed.model;
-    }
-    let width = beat.width;
-    let height = beat.height;
-    if ((!width || !height) && (beat.aspect || shoot?.width || preset?.width)) {
-      if (beat.aspect) {
-        const dims = parseAspectRatio(beat.aspect);
-        if (dims) {
-          width = dims.width;
-          height = dims.height;
-        }
-      } else if (shoot?.width && shoot?.height) {
-        width = shoot.width;
-        height = shoot.height;
-      } else if (preset?.width && preset?.height) {
-        width = preset.width;
-        height = preset.height;
-      }
-    }
-    width = roundToMultipleOf64(width || this.settings.defaultWidth);
-    height = roundToMultipleOf64(height || this.settings.defaultHeight);
-    const steps = beat.steps || shoot?.steps || preset?.steps || this.settings.defaultSteps;
-    const cfg = beat.cfg || shoot?.cfg || preset?.cfg || this.settings.defaultCfg;
-    const seed = beat.seed !== void 0 ? beat.seed : Math.floor(Math.random() * 2e9);
     let charPrompt = "";
     if (this.settings.enableCharacterResolution && beat.character) {
       charPrompt = await this.charResolver.resolveCharacterPrompt(beat.character, this.settings.characterFolders);
@@ -8638,70 +8911,7 @@ var SceneScriptProcessor = class {
         effectivePrompt = `${effectivePrompt}${preset.promptSuffix}`;
       }
     }
-    let effectiveNegative = beat.negative_prompt || "";
-    if (preset?.negativePrompt) {
-      effectiveNegative = effectiveNegative ? `${preset.negativePrompt}, ${effectiveNegative}` : preset.negativePrompt;
-    }
-    const vaultPath = this.app.vault.adapter.getBasePath ? this.app.vault.adapter.getBasePath() : "";
-    let relOutputPath = beat.output;
-    if (!relOutputPath) {
-      const folder = this.settings.outputFolderPattern.replace("{scene}", sceneSlug);
-      relOutputPath = `${folder}/${beatSlug}_${titleSlug}.png`;
-    }
-    const absOutputPath = path3.isAbsolute(relOutputPath) ? relOutputPath : path3.join(vaultPath, relOutputPath);
-    const absMetaPath = absOutputPath.replace(/\.[^.]+$/, ".meta.json");
-    const cliArgs = [this.settings.cliPath, "generate"];
-    if (this.settings.modelsDir && this.settings.modelsDir.trim()) {
-      cliArgs.push("--models-dir", this.settings.modelsDir.trim());
-    }
-    cliArgs.push("--model", model);
-    cliArgs.push("--prompt", effectivePrompt);
-    if (effectiveNegative.trim()) {
-      cliArgs.push("--negative-prompt", effectiveNegative.trim());
-    }
-    cliArgs.push("--width", String(width));
-    cliArgs.push("--height", String(height));
-    cliArgs.push("--steps", String(steps));
-    cliArgs.push("--cfg", String(cfg));
-    cliArgs.push("--seed", String(seed));
-    cliArgs.push("--disable-preview");
-    cliArgs.push("--output", absOutputPath);
-    if (beat.image) {
-      const absInputImg = path3.isAbsolute(beat.image) ? beat.image : path3.join(vaultPath, beat.image);
-      cliArgs.push("--image", absInputImg);
-      if (beat.strength !== void 0) {
-        cliArgs.push("--strength", String(beat.strength));
-      }
-    }
-    const configJson = beat.config_json || (shoot ? this.configLookup.buildConfigJson(shoot) : preset?.configJson || "");
-    if (configJson) {
-      cliArgs.push("--config-json", configJson);
-    }
-    return {
-      id: `${beat.id}-${Date.now()}`,
-      beatId: beat.id,
-      notePath: sourcePath,
-      scene: beat.scene || "Scene",
-      beatNumber: beat.beat,
-      title: beat.title || `Beat ${beat.beat}`,
-      prompt: beat.prompt,
-      effectivePrompt,
-      shootName: shoot?.name,
-      configJson,
-      model,
-      seed,
-      width,
-      height,
-      steps,
-      cfg,
-      outputPath: absOutputPath,
-      metaPath: absMetaPath,
-      cliArgs,
-      status: "pending",
-      progress: 0,
-      statusMessage: "Queued",
-      logs: []
-    };
+    return buildGenerationJob(this.app, beat, sourcePath, this.settings, this.configLookup, effectivePrompt);
   }
   renderSceneDeck(container, sceneData, ctx) {
     const deck = container.createDiv({ cls: "drawthings-scene-deck" });
@@ -8731,7 +8941,7 @@ var SceneScriptProcessor = class {
         const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
         const defaultRel = `${this.settings.outputFolderPattern.replace("{scene}", sceneSlug)}/${beatSlug}_${titleSlug}.png`;
         const rel = beat.output || defaultRel;
-        const abs = path3.isAbsolute(rel) ? rel : path3.join(vaultPath, rel);
+        const abs = path4.isAbsolute(rel) ? rel : path4.join(vaultPath, rel);
         if (fs3.existsSync(abs)) done++;
       }
       countBadge.setText(`${done} / ${sceneData.beats.length} Generated`);
@@ -8743,7 +8953,7 @@ var SceneScriptProcessor = class {
       const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
       const defaultRel = `${this.settings.outputFolderPattern.replace("{scene}", sceneSlug)}/${beatSlug}_${titleSlug}.png`;
       const rel = beat.output || defaultRel;
-      const abs = path3.isAbsolute(rel) ? rel : path3.join(vaultPath, rel);
+      const abs = path4.isAbsolute(rel) ? rel : path4.join(vaultPath, rel);
       const cardHead = beatCard.createDiv({ cls: "drawthings-grid-card-head" });
       cardHead.createSpan({ cls: "drawthings-badge beat-badge", text: `Beat ${beat.beat}` });
       if (beat.character) {
@@ -8832,7 +9042,7 @@ var SceneScriptProcessor = class {
 // src/storyboardView.ts
 var import_obsidian7 = require("obsidian");
 init_browser();
-var path4 = __toESM(require("path"));
+var path5 = __toESM(require("path"));
 var fs4 = __toESM(require("fs"));
 
 // src/beatPrompts.ts
@@ -9299,7 +9509,7 @@ var StoryboardView = class extends import_obsidian7.ItemView {
       const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
       const defaultRel = `${this.settings.outputFolderPattern.replace("{scene}", sceneSlug)}/${beatSlug}_${titleSlug}.png`;
       const rel = beat.output || defaultRel;
-      const abs = path4.isAbsolute(rel) ? rel : path4.join(vaultPath, rel);
+      const abs = path5.isAbsolute(rel) ? rel : path5.join(vaultPath, rel);
       const exists = fs4.existsSync(abs);
       const itemTop = item.createDiv({ cls: "drawthings-sidebar-item-top" });
       itemTop.createSpan({ cls: "drawthings-badge beat-badge", text: `Beat ${beat.beat}` });
@@ -9528,41 +9738,10 @@ prompt: "Key scene beat description here..."
     return beats;
   }
   async buildJob(beat, sourcePath) {
-    const sceneSlug = (beat.scene || "scene").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
-    const beatSlug = String(beat.beat).padStart(2, "0");
-    const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
     const shootQuery = beat.shoot || beat.preset || this.settings.activeShoot;
     const shoot = this.configLookup.getShoot(shootQuery);
     const presetKey = beat.preset || "";
     const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
-    let model = beat.model || shoot?.model || preset?.model || this.settings.defaultModel;
-    const effectiveLora = shoot?.lora || "none";
-    if (effectiveLora && effectiveLora.toLowerCase() !== "none") {
-      const fixed = this.configLookup.checkAndFixModelLoraCompatibility(model, effectiveLora);
-      model = fixed.model;
-    }
-    let width = beat.width;
-    let height = beat.height;
-    if ((!width || !height) && (beat.aspect || shoot?.width || preset?.width)) {
-      if (beat.aspect) {
-        const dims = parseAspectRatio(beat.aspect);
-        if (dims) {
-          width = dims.width;
-          height = dims.height;
-        }
-      } else if (shoot?.width && shoot?.height) {
-        width = shoot.width;
-        height = shoot.height;
-      } else if (preset?.width && preset?.height) {
-        width = preset.width;
-        height = preset.height;
-      }
-    }
-    width = roundToMultipleOf64(width || this.settings.defaultWidth);
-    height = roundToMultipleOf64(height || this.settings.defaultHeight);
-    const steps = beat.steps || shoot?.steps || preset?.steps || this.settings.defaultSteps;
-    const cfg = beat.cfg || shoot?.cfg || preset?.cfg || this.settings.defaultCfg;
-    const seed = beat.seed !== void 0 ? beat.seed : Math.floor(Math.random() * 2e9);
     let charPrompt = "";
     if (this.settings.enableCharacterResolution && beat.character) {
       charPrompt = await this.charResolver.resolveCharacterPrompt(beat.character, this.settings.characterFolders);
@@ -9592,70 +9771,7 @@ prompt: "Key scene beat description here..."
         effectivePrompt = `${effectivePrompt}${preset.promptSuffix}`;
       }
     }
-    let effectiveNegative = beat.negative_prompt || "";
-    if (preset?.negativePrompt) {
-      effectiveNegative = effectiveNegative ? `${preset.negativePrompt}, ${effectiveNegative}` : preset.negativePrompt;
-    }
-    const vaultPath = this.app.vault.adapter.getBasePath ? this.app.vault.adapter.getBasePath() : "";
-    let relOutputPath = beat.output;
-    if (!relOutputPath) {
-      const folder = this.settings.outputFolderPattern.replace("{scene}", sceneSlug);
-      relOutputPath = `${folder}/${beatSlug}_${titleSlug}.png`;
-    }
-    const absOutputPath = path4.isAbsolute(relOutputPath) ? relOutputPath : path4.join(vaultPath, relOutputPath);
-    const absMetaPath = absOutputPath.replace(/\.[^.]+$/, ".meta.json");
-    const cliArgs = [this.settings.cliPath, "generate"];
-    if (this.settings.modelsDir && this.settings.modelsDir.trim()) {
-      cliArgs.push("--models-dir", this.settings.modelsDir.trim());
-    }
-    cliArgs.push("--model", model);
-    cliArgs.push("--prompt", effectivePrompt);
-    if (effectiveNegative.trim()) {
-      cliArgs.push("--negative-prompt", effectiveNegative.trim());
-    }
-    cliArgs.push("--width", String(width));
-    cliArgs.push("--height", String(height));
-    cliArgs.push("--steps", String(steps));
-    cliArgs.push("--cfg", String(cfg));
-    cliArgs.push("--seed", String(seed));
-    cliArgs.push("--disable-preview");
-    cliArgs.push("--output", absOutputPath);
-    if (beat.image) {
-      const absInputImg = path4.isAbsolute(beat.image) ? beat.image : path4.join(vaultPath, beat.image);
-      cliArgs.push("--image", absInputImg);
-      if (beat.strength !== void 0) {
-        cliArgs.push("--strength", String(beat.strength));
-      }
-    }
-    const configJson = beat.config_json || (shoot ? this.configLookup.buildConfigJson(shoot) : preset?.configJson || "");
-    if (configJson) {
-      cliArgs.push("--config-json", configJson);
-    }
-    return {
-      id: `${beat.id}-${Date.now()}`,
-      beatId: beat.id,
-      notePath: sourcePath,
-      scene: beat.scene || "Scene",
-      beatNumber: beat.beat,
-      title: beat.title || `Beat ${beat.beat}`,
-      prompt: beat.prompt,
-      effectivePrompt,
-      shootName: shoot?.name,
-      configJson,
-      model,
-      seed,
-      width,
-      height,
-      steps,
-      cfg,
-      outputPath: absOutputPath,
-      metaPath: absMetaPath,
-      cliArgs,
-      status: "pending",
-      progress: 0,
-      statusMessage: "Queued",
-      logs: []
-    };
+    return buildGenerationJob(this.app, beat, sourcePath, this.settings, this.configLookup, effectivePrompt);
   }
 };
 
@@ -9912,8 +10028,8 @@ var LLMClient = class {
 
 // src/configLookup.ts
 var fs5 = __toESM(require("fs"));
-var path5 = __toESM(require("path"));
-var os = __toESM(require("os"));
+var path6 = __toESM(require("path"));
+var os2 = __toESM(require("os"));
 var BUILTIN_SHOOTS = [
   {
     id: "bath_georgian",
@@ -10073,8 +10189,8 @@ var ConfigLookup = class {
       const expanded = this.expandHome(customDir.trim());
       if (fs5.existsSync(expanded)) return expanded;
     }
-    const appModelsDir = path5.join(
-      os.homedir(),
+    const appModelsDir = path6.join(
+      os2.homedir(),
       "Library",
       "Containers",
       "com.liuliu.draw-things",
@@ -10089,7 +10205,7 @@ var ConfigLookup = class {
   }
   expandHome(filepath) {
     if (filepath.startsWith("~/") || filepath === "~") {
-      return path5.join(os.homedir(), filepath.slice(1));
+      return path6.join(os2.homedir(), filepath.slice(1));
     }
     return filepath;
   }
@@ -10115,7 +10231,7 @@ var ConfigLookup = class {
   }
   loadCustomLoraMetadata() {
     this.loraVersionMap.clear();
-    const loraJsonPath = path5.join(this.modelsDir, "custom_lora.json");
+    const loraJsonPath = path6.join(this.modelsDir, "custom_lora.json");
     if (fs5.existsSync(loraJsonPath)) {
       try {
         const raw = fs5.readFileSync(loraJsonPath, "utf8");
@@ -10157,11 +10273,11 @@ var ConfigLookup = class {
     if (!loraFilename || loraFilename.toLowerCase() === "none") {
       return { model: modelFilename, lora: "none", version: "" };
     }
-    let resolvedLora = loraFilename;
+    let resolvedLora = path6.basename(loraFilename);
     if (resolvedLora === "mystic_z_lora_f16.ckpt") {
       resolvedLora = "mystic__lora_f16.ckpt";
     }
-    const physicalPath = path5.join(this.modelsDir, resolvedLora);
+    const physicalPath = path6.join(this.modelsDir, resolvedLora);
     if (!fs5.existsSync(physicalPath)) {
       console.warn(`[ConfigLookup] LoRA '${resolvedLora}' not found in ${this.modelsDir}. Disabling LoRA to prevent CLI error.`);
       return { model: modelFilename, lora: "none", version: "" };
@@ -10197,15 +10313,15 @@ var ConfigLookup = class {
     return { model: modelFilename, lora: resolvedLora, version: loraVer };
   }
   loadDrawThingsAppConfigs() {
-    const customConfigsPath = path5.join(this.modelsDir, "custom_configs.json");
-    const cachePath = path5.join(os.homedir(), ".config", "drawthings-alfred", "custom_configs_cache.json");
+    const customConfigsPath = path6.join(this.modelsDir, "custom_configs.json");
+    const cachePath = path6.join(os2.homedir(), ".config", "drawthings-alfred", "custom_configs_cache.json");
     let configs = [];
     if (fs5.existsSync(customConfigsPath)) {
       try {
         const raw = fs5.readFileSync(customConfigsPath, "utf8");
         configs = JSON.parse(raw);
         try {
-          const cacheDir = path5.dirname(cachePath);
+          const cacheDir = path6.dirname(cachePath);
           if (!fs5.existsSync(cacheDir)) fs5.mkdirSync(cacheDir, { recursive: true });
           fs5.writeFileSync(cachePath, JSON.stringify(configs, null, 2), "utf8");
         } catch (e) {
@@ -10236,9 +10352,9 @@ var ConfigLookup = class {
       const rawLoras = Array.isArray(cfg.loras) ? cfg.loras : [];
       const validLoras = [];
       for (const l of rawLoras) {
-        const lFile = l.file || "";
+        const lFile = path6.basename(l.file || "");
         if (!lFile) continue;
-        const exists = fs5.existsSync(path5.join(this.modelsDir, lFile));
+        const exists = fs5.existsSync(path6.join(this.modelsDir, lFile));
         if (exists) {
           const lWeight = parseFloat(l.weight ?? 1);
           const lVer = this.findLoraVersion(lFile, model);
@@ -10282,7 +10398,7 @@ var ConfigLookup = class {
     return appShoots;
   }
   loadAlfredCustomShoots() {
-    const shootsFile = path5.join(os.homedir(), ".config", "drawthings-alfred", "shoots.json");
+    const shootsFile = path6.join(os2.homedir(), ".config", "drawthings-alfred", "shoots.json");
     if (!fs5.existsSync(shootsFile)) return [];
     try {
       const raw = fs5.readFileSync(shootsFile, "utf8");
@@ -10329,11 +10445,12 @@ var ConfigLookup = class {
     if (shoot.loras && Array.isArray(shoot.loras) && shoot.loras.length > 0) {
       const validList = [];
       for (const l of shoot.loras) {
-        if (l.file && fs5.existsSync(path5.join(this.modelsDir, l.file))) {
+        const safeFile = path6.basename(l.file || "");
+        if (safeFile && fs5.existsSync(path6.join(this.modelsDir, safeFile))) {
           validList.push({
-            file: l.file,
+            file: safeFile,
             weight: Number(l.weight ?? 1),
-            version: l.version || this.findLoraVersion(l.file, shoot.model)
+            version: l.version || this.findLoraVersion(safeFile, shoot.model)
           });
         }
       }
@@ -10731,11 +10848,24 @@ beats:
           new PromptRefineModal(
             this.app,
             {
-              id: "cmd-refine",
+              id: `cmd-${raw.beat || 1}-${Date.now()}`,
               beat: raw.beat || 1,
               title: raw.title,
               prompt: raw.prompt || "",
-              character: raw.character
+              character: raw.character,
+              shoot: raw.shoot,
+              preset: raw.preset,
+              model: raw.model,
+              width: raw.width,
+              height: raw.height,
+              aspect: raw.aspect || raw.ratio,
+              steps: raw.steps,
+              cfg: raw.cfg,
+              seed: raw.seed !== void 0 ? Number(raw.seed) : void 0,
+              output: raw.output,
+              image: raw.image,
+              strength: raw.strength,
+              config_json: raw.config_json
             },
             file,
             shoot,

@@ -268,8 +268,8 @@ export class ConfigLookup {
       return { model: modelFilename, lora: "none", version: "" };
     }
 
-    // Auto-remap deprecated mystic_z_lora_f16.ckpt to mystic__lora_f16.ckpt
-    let resolvedLora = loraFilename;
+    // Sanitize filename to prevent path traversal
+    let resolvedLora = path.basename(loraFilename);
     if (resolvedLora === "mystic_z_lora_f16.ckpt") {
       resolvedLora = "mystic__lora_f16.ckpt";
     }
@@ -361,7 +361,7 @@ export class ConfigLookup {
       const rawLoras: any[] = Array.isArray(cfg.loras) ? cfg.loras : [];
       const validLoras: ShootLora[] = [];
       for (const l of rawLoras) {
-        const lFile = l.file || "";
+        const lFile = path.basename(l.file || "");
         if (!lFile) continue;
         const exists = fs.existsSync(path.join(this.modelsDir, lFile));
         if (exists) {
@@ -473,11 +473,12 @@ export class ConfigLookup {
     if (shoot.loras && Array.isArray(shoot.loras) && shoot.loras.length > 0) {
       const validList: any[] = [];
       for (const l of shoot.loras) {
-        if (l.file && fs.existsSync(path.join(this.modelsDir, l.file))) {
+        const safeFile = path.basename(l.file || "");
+        if (safeFile && fs.existsSync(path.join(this.modelsDir, safeFile))) {
           validList.push({
-            file: l.file,
+            file: safeFile,
             weight: Number(l.weight ?? 1.0),
-            version: l.version || this.findLoraVersion(l.file, shoot.model)
+            version: l.version || this.findLoraVersion(safeFile, shoot.model)
           });
         }
       }

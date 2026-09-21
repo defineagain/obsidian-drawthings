@@ -12,6 +12,7 @@ import { BeatReviewModal } from "./beatReviewModal";
 import { ConfigLookup } from "./configLookup";
 import { PromptRefiner } from "./promptRefiner";
 import { PromptRefineModal } from "./refineModal";
+import { buildGenerationJob } from "./jobBuilder";
 
 export const STORYBOARD_VIEW_TYPE = "drawthings-storyboard-view";
 
@@ -412,47 +413,10 @@ export class StoryboardView extends ItemView {
   }
 
   private async buildJob(beat: PlotBeatData, sourcePath: string): Promise<GenerationJob> {
-    const sceneSlug = (beat.scene || "scene").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
-    const beatSlug = String(beat.beat).padStart(2, "0");
-    const titleSlug = (beat.title || "beat").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
-
     const shootQuery = beat.shoot || beat.preset || this.settings.activeShoot;
     const shoot = this.configLookup.getShoot(shootQuery);
     const presetKey = beat.preset || "";
     const preset = this.settings.presets[presetKey] || DEFAULT_PRESETS[presetKey];
-
-    let model = beat.model || shoot?.model || preset?.model || this.settings.defaultModel;
-
-    // LoRA compatibility
-    const effectiveLora = shoot?.lora || "none";
-    if (effectiveLora && effectiveLora.toLowerCase() !== "none") {
-      const fixed = this.configLookup.checkAndFixModelLoraCompatibility(model, effectiveLora);
-      model = fixed.model;
-    }
-
-    let width = beat.width;
-    let height = beat.height;
-    if ((!width || !height) && (beat.aspect || shoot?.width || preset?.width)) {
-      if (beat.aspect) {
-        const dims = parseAspectRatio(beat.aspect);
-        if (dims) {
-          width = dims.width;
-          height = dims.height;
-        }
-      } else if (shoot?.width && shoot?.height) {
-        width = shoot.width;
-        height = shoot.height;
-      } else if (preset?.width && preset?.height) {
-        width = preset.width;
-        height = preset.height;
-      }
-    }
-    width = roundToMultipleOf64(width || this.settings.defaultWidth);
-    height = roundToMultipleOf64(height || this.settings.defaultHeight);
-
-    const steps = beat.steps || shoot?.steps || preset?.steps || this.settings.defaultSteps;
-    const cfg = beat.cfg || shoot?.cfg || preset?.cfg || this.settings.defaultCfg;
-    const seed = beat.seed !== undefined ? beat.seed : Math.floor(Math.random() * 2000000000);
 
     let charPrompt = "";
     if (this.settings.enableCharacterResolution && beat.character) {
@@ -489,75 +453,6 @@ export class StoryboardView extends ItemView {
       }
     }
 
-    let effectiveNegative = beat.negative_prompt || "";
-    if (preset?.negativePrompt) {
-      effectiveNegative = effectiveNegative ? `${preset.negativePrompt}, ${effectiveNegative}` : preset.negativePrompt;
-    }
-
-    const vaultPath = (this.app.vault.adapter as any).getBasePath ? (this.app.vault.adapter as any).getBasePath() : "";
-    let relOutputPath = beat.output;
-    if (!relOutputPath) {
-      const folder = this.settings.outputFolderPattern.replace("{scene}", sceneSlug);
-      relOutputPath = `${folder}/${beatSlug}_${titleSlug}.png`;
-    }
-
-    const absOutputPath = path.isAbsolute(relOutputPath) ? relOutputPath : path.join(vaultPath, relOutputPath);
-    const absMetaPath = absOutputPath.replace(/\.[^.]+$/, ".meta.json");
-
-    const cliArgs: string[] = [this.settings.cliPath, "generate"];
-    if (this.settings.modelsDir && this.settings.modelsDir.trim()) {
-      cliArgs.push("--models-dir", this.settings.modelsDir.trim());
-    }
-    cliArgs.push("--model", model);
-    cliArgs.push("--prompt", effectivePrompt);
-    if (effectiveNegative.trim()) {
-      cliArgs.push("--negative-prompt", effectiveNegative.trim());
-    }
-    cliArgs.push("--width", String(width));
-    cliArgs.push("--height", String(height));
-    cliArgs.push("--steps", String(steps));
-    cliArgs.push("--cfg", String(cfg));
-    cliArgs.push("--seed", String(seed));
-    cliArgs.push("--disable-preview");
-    cliArgs.push("--output", absOutputPath);
-
-    if (beat.image) {
-      const absInputImg = path.isAbsolute(beat.image) ? beat.image : path.join(vaultPath, beat.image);
-      cliArgs.push("--image", absInputImg);
-      if (beat.strength !== undefined) {
-        cliArgs.push("--strength", String(beat.strength));
-      }
-    }
-
-    const configJson = beat.config_json || (shoot ? this.configLookup.buildConfigJson(shoot) : (preset?.configJson || ""));
-    if (configJson) {
-      cliArgs.push("--config-json", configJson);
-    }
-
-    return {
-      id: `${beat.id}-${Date.now()}`,
-      beatId: beat.id,
-      notePath: sourcePath,
-      scene: beat.scene || "Scene",
-      beatNumber: beat.beat,
-      title: beat.title || `Beat ${beat.beat}`,
-      prompt: beat.prompt,
-      effectivePrompt,
-      shootName: shoot?.name,
-      configJson,
-      model,
-      seed,
-      width,
-      height,
-      steps,
-      cfg,
-      outputPath: absOutputPath,
-      metaPath: absMetaPath,
-      cliArgs,
-      status: "pending",
-      progress: 0,
-      statusMessage: "Queued",
-      logs: []
-    };
+    return buildGenerationJob(this.app, beat, sourcePath, this.settings, this.configLookup, effectivePrompt);
   }
 }

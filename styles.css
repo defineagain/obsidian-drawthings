@@ -691,6 +691,20 @@
   box-sizing: border-box;
 }
 
+.drawthings-refine-status {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.drawthings-refine-status.is-refining {
+  color: var(--interactive-accent);
+  font-style: italic;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
 .drawthings-refine-actions {
   display: flex;
   gap: 8px;
@@ -698,4 +712,5 @@
   justify-content: flex-end;
   flex-wrap: wrap;
 }
+
 

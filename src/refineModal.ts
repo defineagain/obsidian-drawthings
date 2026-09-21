@@ -4,6 +4,8 @@ import { PromptRefiner } from "./promptRefiner";
 import { CharacterResolver } from "./characterResolver";
 import { QueueManager } from "./queue";
 import { ConfigLookup } from "./configLookup";
+import { updatePromptInNoteContent } from "./noteUpdater";
+import { buildGenerationJob } from "./jobBuilder";
 
 export class PromptRefineModal extends Modal {
   private beat: PlotBeatData;
@@ -19,6 +21,14 @@ export class PromptRefineModal extends Modal {
   private currentMode: PromptRefineMode = "unified";
   private refinedText: string = "";
   private isRefining: boolean = false;
+
+  // DOM element references
+  private textArea!: HTMLTextAreaElement;
+  private statusEl!: HTMLElement;
+  private btnUpdateNote!: HTMLButtonElement;
+  private btnQueueGen!: HTMLButtonElement;
+  private btnCopy!: HTMLButtonElement;
+  private btnReRun!: HTMLButtonElement;
 
   constructor(
     app: App,
@@ -43,32 +53,44 @@ export class PromptRefineModal extends Modal {
     this.configLookup = configLookup;
     this.onRefined = onRefined;
 
-    this.currentMode = (beat.refine as PromptRefineMode) || shoot.refine_mode || settings.promptRefineMode || "unified";
+    this.currentMode =
+      (beat.refine as PromptRefineMode) ||
+      shoot.refine_mode ||
+      settings.promptRefineMode ||
+      "unified";
     if (this.currentMode === "disabled") {
       this.currentMode = "unified";
     }
   }
 
   onOpen() {
-    this.render();
+    this.buildUI();
     this.doRefine();
   }
 
-  private render() {
+  private buildUI() {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("drawthings-refine-modal");
 
-    contentEl.createEl("h3", { text: `🧠 Refine Prompt: Beat ${this.beat.beat} ("${this.beat.title || 'Beat'}")` });
+    contentEl.createEl("h3", {
+      text: `🧠 Refine Prompt: Beat ${this.beat.beat} ("${this.beat.title || "Beat"}")`
+    });
 
-    // Shoot badge / context
+    // Shoot badge & context row
     const contextRow = contentEl.createDiv({ cls: "drawthings-refine-context" });
-    contextRow.createSpan({ cls: "drawthings-badge shoot-badge", text: `🎬 Shoot: ${this.shoot.name}` });
+    contextRow.createSpan({
+      cls: "drawthings-badge shoot-badge",
+      text: `🎬 Shoot: ${this.shoot.name}`
+    });
     if (this.shoot.prompt_anchor) {
-      contextRow.createSpan({ cls: "drawthings-refine-anchor-preview", text: `Anchor: ${this.shoot.prompt_anchor.slice(0, 60)}...` });
+      contextRow.createSpan({
+        cls: "drawthings-refine-anchor-preview",
+        text: `Anchor: ${this.shoot.prompt_anchor.slice(0, 60)}...`
+      });
     }
 
-    // Refinement Mode Selector
+    // Refinement Architecture Selector
     new Setting(contentEl)
       .setName("Refinement Architecture Mode")
       .setDesc("Unified Master combines Visionary logic with ENI Shoot Bible 5-part architecture.")
@@ -83,49 +105,54 @@ export class PromptRefineModal extends Modal {
             await this.doRefine();
           });
       })
-      .addButton(btn =>
-        btn.setButtonText("🔄 Re-run Refinement").onClick(() => this.doRefine())
-      );
+      .addButton(btn => {
+        btn.setButtonText("🔄 Re-run Refinement");
+        btn.onClick(() => this.doRefine());
+        this.btnReRun = btn.buttonEl;
+      });
 
-    // Original Prompt Display
+    // Original Prompt Box
     const originalBox = contentEl.createDiv({ cls: "drawthings-refine-box" });
     originalBox.createEl("h5", { text: "Original Beat Prompt" });
-    originalBox.createEl("p", { cls: "drawthings-refine-original-text", text: this.beat.prompt || "(No prompt)" });
+    originalBox.createEl("p", {
+      cls: "drawthings-refine-original-text",
+      text: this.beat.prompt || "(No prompt specified)"
+    });
 
     // Refined Prompt Display / Editor
     const refinedBox = contentEl.createDiv({ cls: "drawthings-refine-box" });
     refinedBox.createEl("h5", { text: "Refined Visionary Prompt" });
 
-    const textArea = refinedBox.createEl("textarea", {
+    this.textArea = refinedBox.createEl("textarea", {
       cls: "drawthings-refine-textarea",
-      attr: { rows: "9" }
+      attr: { rows: "10" }
     });
-    textArea.value = this.isRefining ? "⏳ Synthesizing photographic prompt architecture with AI..." : this.refinedText;
-    textArea.disabled = this.isRefining;
+    this.textArea.placeholder = "Refined prompt will appear here...";
 
-    textArea.addEventListener("input", () => {
-      this.refinedText = textArea.value;
+    this.textArea.addEventListener("input", () => {
+      this.refinedText = this.textArea.value;
     });
 
-    // Action Buttons
+    // Live status / feedback element
+    this.statusEl = refinedBox.createDiv({ cls: "drawthings-refine-status" });
+    this.statusEl.setText("Ready");
+
+    // Action Buttons Row
     const btnRow = contentEl.createDiv({ cls: "drawthings-refine-actions" });
 
-    const btnUpdateNote = btnRow.createEl("button", {
+    this.btnUpdateNote = btnRow.createEl("button", {
       cls: "mod-cta drawthings-btn",
-      text: "💾 Save to Note",
-      attr: { disabled: this.isRefining ? "true" : undefined }
+      text: "💾 Save to Note"
     });
 
-    const btnQueueGen = btnRow.createEl("button", {
+    this.btnQueueGen = btnRow.createEl("button", {
       cls: "drawthings-btn",
-      text: "🎨 Save & Generate Now",
-      attr: { disabled: this.isRefining ? "true" : undefined }
+      text: "🎨 Save & Generate Now"
     });
 
-    const btnCopy = btnRow.createEl("button", {
+    this.btnCopy = btnRow.createEl("button", {
       cls: "drawthings-btn",
-      text: "📋 Copy Text",
-      attr: { disabled: this.isRefining ? "true" : undefined }
+      text: "📋 Copy Text"
     });
 
     const btnCancel = btnRow.createEl("button", {
@@ -133,32 +160,57 @@ export class PromptRefineModal extends Modal {
       text: "Close"
     });
 
-    btnUpdateNote.addEventListener("click", async () => {
-      if (!this.refinedText || this.refinedText.trim().length === 0) {
+    // Event Handlers
+    this.btnUpdateNote.addEventListener("click", async () => {
+      const textToSave = this.refinedText.trim() || this.textArea.value.trim();
+      if (!textToSave) {
         new Notice("No refined text to save.");
         return;
       }
-      await this.saveRefinedPromptToNote(this.refinedText.trim());
-      if (this.onRefined) this.onRefined(this.refinedText.trim());
+      await this.saveRefinedPromptToNote(textToSave);
+      if (this.onRefined) this.onRefined(textToSave);
       this.close();
     });
 
-    btnQueueGen.addEventListener("click", async () => {
-      if (!this.refinedText || this.refinedText.trim().length === 0) {
+    this.btnQueueGen.addEventListener("click", async () => {
+      const textToSave = this.refinedText.trim() || this.textArea.value.trim();
+      if (!textToSave) {
         new Notice("No refined text to generate.");
         return;
       }
-      await this.saveRefinedPromptToNote(this.refinedText.trim());
-      if (this.onRefined) this.onRefined(this.refinedText.trim());
+
+      await this.saveRefinedPromptToNote(textToSave);
+      if (this.onRefined) this.onRefined(textToSave);
       this.close();
-      // Enqueue generation
-      const beatCopy = { ...this.beat, prompt: this.refinedText.trim() };
-      new Notice(`Queued plate generation for Beat ${beatCopy.beat}`);
+
+      try {
+        const beatCopy: PlotBeatData = { ...this.beat, prompt: textToSave };
+        const job = await buildGenerationJob(
+          this.app,
+          beatCopy,
+          this.noteFile.path,
+          this.settings,
+          this.configLookup,
+          textToSave
+        );
+        this.queue.enqueue(job);
+      } catch (err: any) {
+        new Notice(`Failed to enqueue generation: ${err.message}`);
+      }
     });
 
-    btnCopy.addEventListener("click", () => {
-      navigator.clipboard.writeText(this.refinedText);
-      new Notice("Refined prompt copied to clipboard!");
+    this.btnCopy.addEventListener("click", async () => {
+      const textToCopy = this.refinedText.trim() || this.textArea.value.trim();
+      if (!textToCopy) {
+        new Notice("No refined text to copy.");
+        return;
+      }
+      const ok = await this.copyToClipboard(textToCopy);
+      if (ok) {
+        new Notice("📋 Refined prompt copied to clipboard!");
+      } else {
+        new Notice("⚠️ Failed to copy prompt to clipboard.");
+      }
     });
 
     btnCancel.addEventListener("click", () => {
@@ -166,14 +218,58 @@ export class PromptRefineModal extends Modal {
     });
   }
 
+  private setRefiningState(isRefining: boolean, statusText?: string) {
+    this.isRefining = isRefining;
+
+    // Toggle button disabled states safely
+    if (this.btnUpdateNote) {
+      this.btnUpdateNote.disabled = isRefining;
+      if (!isRefining) this.btnUpdateNote.removeAttribute("disabled");
+    }
+    if (this.btnQueueGen) {
+      this.btnQueueGen.disabled = isRefining;
+      if (!isRefining) this.btnQueueGen.removeAttribute("disabled");
+    }
+    if (this.btnCopy) {
+      this.btnCopy.disabled = isRefining;
+      if (!isRefining) this.btnCopy.removeAttribute("disabled");
+    }
+    if (this.btnReRun) {
+      this.btnReRun.disabled = isRefining;
+      if (!isRefining) this.btnReRun.removeAttribute("disabled");
+    }
+    if (this.textArea) {
+      this.textArea.disabled = isRefining;
+      if (!isRefining) {
+        this.textArea.removeAttribute("disabled");
+        this.textArea.value = this.refinedText;
+      } else {
+        this.textArea.value = "⏳ Synthesizing photographic prompt architecture with AI...";
+      }
+    }
+
+    if (this.statusEl) {
+      this.statusEl.toggleClass("is-refining", isRefining);
+      if (statusText) {
+        this.statusEl.setText(statusText);
+      } else if (isRefining) {
+        this.statusEl.setText("⏳ Synthesizing photographic prompt architecture with AI...");
+      } else {
+        this.statusEl.setText("✅ Prompt refined! You can edit above or save directly to your note.");
+      }
+    }
+  }
+
   private async doRefine() {
-    this.isRefining = true;
-    this.render();
+    this.setRefiningState(true);
 
     try {
       let charPrompt = "";
       if (this.settings.enableCharacterResolution && this.beat.character) {
-        charPrompt = await this.charResolver.resolveCharacterPrompt(this.beat.character, this.settings.characterFolders);
+        charPrompt = await this.charResolver.resolveCharacterPrompt(
+          this.beat.character,
+          this.settings.characterFolders
+        );
       }
 
       this.refinedText = await this.promptRefiner.refine(this.beat.prompt, {
@@ -181,37 +277,76 @@ export class PromptRefineModal extends Modal {
         promptAnchor: this.shoot.prompt_anchor,
         characterPrompt: charPrompt
       });
+
+      this.setRefiningState(false);
     } catch (err: any) {
-      new Notice(`Refinement failed: ${err.message}`);
-      this.refinedText = this.beat.prompt;
-    } finally {
-      this.isRefining = false;
-      this.render();
+      this.refinedText = this.beat.prompt || "";
+      this.setRefiningState(false, `❌ Refinement failed: ${err?.message || String(err)}`);
+      new Notice(`Refinement failed: ${err?.message || String(err)}`);
     }
   }
 
-  private async saveRefinedPromptToNote(newPrompt: string): Promise<void> {
+  private async saveRefinedPromptToNote(newPrompt: string): Promise<boolean> {
     try {
       const content = await this.app.vault.read(this.noteFile);
-      // Look for the specific plotbeat block for this beat
-      const escapedPrompt = this.beat.prompt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const promptRegex = new RegExp(`(prompt:\\s*)(["']?${escapedPrompt}["']?)`, "m");
+      const result = updatePromptInNoteContent(
+        content,
+        {
+          beat: this.beat.beat,
+          title: this.beat.title,
+          originalPrompt: this.beat.prompt
+        },
+        newPrompt
+      );
 
-      if (promptRegex.test(content)) {
-        // Format prompt nicely for YAML
-        const formattedPrompt = newPrompt.includes("\n")
-          ? `prompt: |\n  ${newPrompt.split("\n").join("\n  ")}`
-          : `prompt: "${newPrompt.replace(/"/g, '\\"')}"`;
-
-        const updated = content.replace(promptRegex, formattedPrompt);
-        await this.app.vault.modify(this.noteFile, updated);
-        new Notice(`Updated prompt in "${this.noteFile.basename}"!`);
+      if (result.success) {
+        await this.app.vault.modify(this.noteFile, result.newContent);
+        new Notice(`💾 Saved refined prompt to "${this.noteFile.basename}"!`);
+        return true;
       } else {
-        new Notice("Could not auto-locate prompt in note. Copied to clipboard instead.");
-        navigator.clipboard.writeText(newPrompt);
+        // Fallback: Copy to clipboard and warn user
+        await this.copyToClipboard(newPrompt);
+        new Notice(
+          `⚠️ Could not auto-locate Beat ${this.beat.beat} in note. Copied prompt to clipboard!`,
+          7000
+        );
+        return false;
       }
     } catch (e: any) {
-      new Notice(`Failed to update note: ${e.message}`);
+      new Notice(`❌ Failed to update note: ${e.message}`);
+      await this.copyToClipboard(newPrompt);
+      return false;
+    }
+  }
+
+  private async copyToClipboard(text: string): Promise<boolean> {
+    // Priority 1: Modern clipboard API
+    try {
+      if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (e) {
+      console.warn("[DrawThings] navigator.clipboard.writeText failed:", e);
+    }
+
+    // Priority 2: Fallback textarea execCommand
+    try {
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.setAttribute("readonly", "");
+      el.style.position = "fixed";
+      el.style.top = "-9999px";
+      el.style.left = "-9999px";
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+      const success = document.execCommand("copy");
+      document.body.removeChild(el);
+      return success;
+    } catch (e) {
+      console.error("[DrawThings] execCommand copy failed:", e);
+      return false;
     }
   }
 }

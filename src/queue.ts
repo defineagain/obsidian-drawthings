@@ -2,6 +2,7 @@ import { App, Notice } from "obsidian";
 import { spawn, ChildProcess } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
+import * as os from "os";
 import { GenerationJob, JobStatus } from "./types";
 
 export type QueueListener = (job: GenerationJob) => void;
@@ -209,10 +210,11 @@ export class QueueManager {
       job.logs.push(`> ${cliBin} ${args.join(" ")}`);
 
       // Spawn child process
+      const userLocalBin = path.join(os.homedir(), ".local", "bin");
       const child = spawn(cliBin, args, {
         env: {
           ...process.env,
-          PATH: `/usr/local/bin:/opt/homebrew/bin:/Users/daniel/.local/bin:${process.env.PATH || ""}`
+          PATH: `/usr/local/bin:/opt/homebrew/bin:${userLocalBin}:${process.env.PATH || ""}`
         }
       });
 
